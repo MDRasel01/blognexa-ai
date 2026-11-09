@@ -93,7 +93,10 @@ final class AdminAssets
             ],
         ];
 
-        wp_localize_script('wp-api-fetch', 'blognexaBootConfig', $bootConfig);
+        wp_localize_script('blognexa-admin-app', 'blognexaBootConfig', $bootConfig);
+        if (wp_script_is('wp-api-fetch', 'registered') || wp_script_is('wp-api-fetch', 'enqueued')) {
+            wp_localize_script('wp-api-fetch', 'blognexaBootConfig', $bootConfig);
+        }
     }
 }
 

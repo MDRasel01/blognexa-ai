@@ -1,106 +1,125 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { AppProvider, useApp } from '../state/AppContext';
 import { AdminLayout } from '../layouts/AdminLayout';
-import { OverviewPage } from '../pages/OverviewPage';
+import { LoadingState } from '../components/LoadingState/LoadingState';
+import { ErrorState } from '../components/ErrorState/ErrorState';
 
-interface BootConfig {
-  api: {
-    restUrl: string;
-    nonce: string;
-    namespace: string;
-  };
-  site: {
-    name: string;
-    url: string;
-    version: string;
-  };
-  user: {
-    id: number;
-    name: string;
-    capabilities: Record<string, boolean>;
-  };
-}
+// Feature Views
+import { OverviewView } from '../features/overview/OverviewView';
+import { WebsiteIntelligenceView } from '../features/website-intelligence/WebsiteIntelligenceView';
+import { KnowledgeBaseView } from '../features/knowledge-base/KnowledgeBaseView';
+import { ContentStrategyView } from '../features/content-strategy/ContentStrategyView';
+import { SEOResearchView } from '../features/seo-research/SEOResearchView';
+import { BlogStudioView } from '../features/blog-studio/BlogStudioView';
+import { ImageStudioView } from '../features/image-studio/ImageStudioView';
+import { PublishingView } from '../features/publishing/PublishingView';
+import { AnalyticsView } from '../features/analytics/AnalyticsView';
+import { IntegrationsView } from '../features/integrations/IntegrationsView';
+import { SettingsView } from '../features/settings/SettingsView';
 
-declare global {
-  interface Window {
-    blognexaBootConfig?: BootConfig;
-  }
-}
+const MODULE_CAPABILITIES: Record<string, string> = {
+  'overview': 'blognexa_access',
+  'website-intelligence': 'blognexa_scan_website',
+  'knowledge-base': 'blognexa_manage_knowledge',
+  'content-strategy': 'blognexa_manage_strategy',
+  'seo-research': 'blognexa_manage_seo',
+  'blog-studio': 'blognexa_create_blog',
+  'image-studio': 'blognexa_create_blog',
+  'publishing': 'blognexa_publish_blog',
+  'analytics': 'blognexa_view_analytics',
+  'integrations': 'blognexa_manage_integrations',
+  'settings': 'blognexa_manage_settings',
+};
 
-export const App: React.FC = () => {
-  const [activeModule, setActiveModule] = useState<string>('overview');
-  const [bootConfig, setBootConfig] = useState<BootConfig | null>(null);
+const MainRouter: React.FC = () => {
+  const {
+    bootConfig,
+    activeModule,
+    setActiveModule,
+    connectionStatus,
+    hasCapability,
+    isLoading,
+    error,
+    refreshStatus,
+  } = useApp();
 
-  useEffect(() => {
-    if (window.blognexaBootConfig) {
-      setBootConfig(window.blognexaBootConfig);
+  const requiredCap = MODULE_CAPABILITIES[activeModule];
+  const isPermitted = !requiredCap || hasCapability(requiredCap);
+
+  const renderModule = () => {
+    if (isLoading && !bootConfig) {
+      return <LoadingState message="Connecting to WordPress REST API..." />;
     }
-  }, []);
 
-  const renderContent = () => {
+    if (!isPermitted) {
+      return (
+        <div style={{ padding: '32px' }}>
+          <div
+            style={{
+              padding: '32px',
+              borderRadius: '8px',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              textAlign: 'center',
+            }}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#991b1b', margin: '0 0 8px' }}>
+              Permission Denied
+            </h3>
+            <p style={{ fontSize: '13px', color: '#b91c1c', maxWidth: '480px', margin: '0 auto 16px' }}>
+              Your WordPress user account lacks the <code>{requiredCap}</code> capability required to access this module.
+            </p>
+            <button
+              type="button"
+              className="bnx-btn bnx-btn-secondary"
+              onClick={() => setActiveModule('overview')}
+            >
+              Return to Overview
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeModule) {
       case 'overview':
-        return <OverviewPage version={bootConfig?.site.version ?? '1.0.0'} />;
-
+        return <OverviewView />;
       case 'website-intelligence':
-        return (
-          <div className="blognexa-card">
-            <h3>Website Intelligence</h3>
-            <p style={{ color: '#64748b' }}>No website crawl configured yet. Connect cloud backend to start initial scan.</p>
-            <span className="blognexa-badge blognexa-badge-empty">Unconfigured</span>
-          </div>
-        );
-
+        return <WebsiteIntelligenceView />;
       case 'knowledge-base':
-        return (
-          <div className="blognexa-card">
-            <h3>Knowledge Base</h3>
-            <p style={{ color: '#64748b' }}>No knowledge documents or vector chunks ingested yet.</p>
-            <span className="blognexa-badge blognexa-badge-empty">Empty State</span>
-          </div>
-        );
-
+        return <KnowledgeBaseView />;
+      case 'content-strategy':
+        return <ContentStrategyView />;
+      case 'seo-research':
+        return <SEOResearchView />;
+      case 'blog-studio':
+        return <BlogStudioView />;
+      case 'image-studio':
+        return <ImageStudioView />;
       case 'publishing':
-        return (
-          <div className="blognexa-card">
-            <h3>Publishing & Scheduling</h3>
-            <p style={{ color: '#64748b' }}>No articles scheduled or pending publication.</p>
-            <span className="blognexa-badge blognexa-badge-empty">Empty State</span>
-          </div>
-        );
-
+        return <PublishingView />;
       case 'analytics':
-        return (
-          <div className="blognexa-card">
-            <h3>Performance Analytics</h3>
-            <p style={{ color: '#64748b' }}>No published content performance data available.</p>
-            <span className="blognexa-badge blognexa-badge-empty">Empty State</span>
-          </div>
-        );
-
+        return <AnalyticsView />;
       case 'integrations':
-        return (
-          <div className="blognexa-card">
-            <h3>Integrations</h3>
-            <p style={{ color: '#64748b' }}>Cloud backend connection status: Disconnected.</p>
-            <span className="blognexa-badge blognexa-badge-empty">Not Connected</span>
-          </div>
-        );
-
+        return <IntegrationsView />;
       case 'settings':
-        return (
-          <div className="blognexa-card">
-            <h3>Plugin Settings</h3>
-            <p style={{ color: '#64748b' }}>Foundation settings configuration managed via REST API <code>/wp-json/blognexa/v1/settings</code>.</p>
-            <span className="blognexa-badge blognexa-badge-healthy">Configured</span>
-          </div>
-        );
-
+        return <SettingsView />;
       default:
         return (
-          <div className="blognexa-card">
-            <h3>{activeModule.replace('-', ' ').toUpperCase()}</h3>
-            <p style={{ color: '#64748b' }}>This module foundation is registered and scheduled for Phase 03 implementation.</p>
-            <span className="blognexa-badge blognexa-badge-empty">Upcoming Module</span>
+          <div style={{ padding: '32px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', margin: '0 0 8px' }}>
+              Module Not Found (404)
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              The requested module <code>{activeModule}</code> does not exist or has been relocated.
+            </p>
+            <button
+              type="button"
+              className="bnx-btn bnx-btn-primary"
+              onClick={() => setActiveModule('overview')}
+            >
+              Return to Overview
+            </button>
           </div>
         );
     }
@@ -110,11 +129,30 @@ export const App: React.FC = () => {
     <AdminLayout
       activeModule={activeModule}
       onSelectModule={setActiveModule}
-      siteName={bootConfig?.site.name ?? 'Connected WordPress'}
-      version={bootConfig?.site.version ?? '1.0.0'}
+      siteName={bootConfig?.site?.name || 'BlogNexa AI'}
+      version={bootConfig?.site?.version || '1.0.0'}
+      userName={bootConfig?.user?.name || 'Administrator'}
+      connectionStatus={connectionStatus?.connected ? 'connected' : 'disconnected'}
+      userCapabilities={bootConfig?.user?.capabilities || {}}
     >
-      {renderContent()}
+      {error && (
+        <div style={{ padding: '16px 32px 0' }}>
+          <ErrorState
+            title="Communication Notice"
+            message={error}
+            onRetry={refreshStatus}
+          />
+        </div>
+      )}
+      {renderModule()}
     </AdminLayout>
   );
 };
 
+export const App: React.FC = () => {
+  return (
+    <AppProvider>
+      <MainRouter />
+    </AppProvider>
+  );
+};

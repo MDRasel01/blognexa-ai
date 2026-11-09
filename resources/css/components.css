@@ -1,0 +1,267 @@
+/**
+ * BlogNexa AI - Design System Component Styles
+ */
+
+/* Cards */
+.bnx-card {
+  background: var(--bnx-color-surface);
+  border: 1px solid var(--bnx-color-border);
+  border-radius: var(--bnx-radius-lg);
+  padding: var(--bnx-space-6);
+  margin-bottom: var(--bnx-space-6);
+  box-shadow: var(--bnx-shadow-sm);
+}
+
+.bnx-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--bnx-space-4);
+}
+
+.bnx-card-title {
+  font-size: var(--bnx-font-size-md);
+  font-weight: 600;
+  margin: 0;
+  color: var(--bnx-color-text);
+}
+
+/* Metric / Stat Grid */
+.bnx-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--bnx-space-4);
+  margin-bottom: var(--bnx-space-6);
+}
+
+.bnx-stat-card {
+  background: var(--bnx-color-surface);
+  border: 1px solid var(--bnx-color-border);
+  border-radius: var(--bnx-radius-md);
+  padding: var(--bnx-space-5);
+  box-shadow: var(--bnx-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.bnx-stat-title {
+  font-size: var(--bnx-font-size-sm);
+  color: var(--bnx-color-text-muted);
+  font-weight: 500;
+}
+
+.bnx-stat-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--bnx-space-3);
+  margin: var(--bnx-space-2) 0;
+}
+
+.bnx-stat-value {
+  font-size: var(--bnx-font-size-3xl);
+  font-weight: 700;
+  color: var(--bnx-color-text);
+  line-height: 1.1;
+}
+
+.bnx-stat-desc {
+  font-size: var(--bnx-font-size-xs);
+  color: var(--bnx-color-text-muted);
+  margin: 0;
+}
+
+/* Buttons */
+.bnx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnx-space-2);
+  padding: 8px 16px;
+  font-size: var(--bnx-font-size-base);
+  font-weight: 600;
+  border-radius: var(--bnx-radius-md);
+  cursor: pointer;
+  transition: all var(--bnx-transition-fast);
+  border: 1px solid transparent;
+  line-height: 1.2;
+}
+
+.bnx-btn-primary {
+  background: var(--bnx-color-primary);
+  color: var(--bnx-color-text-inverted);
+}
+.bnx-btn-primary:hover:not(:disabled) {
+  background: var(--bnx-color-primary-hover);
+}
+
+.bnx-btn-secondary {
+  background: var(--bnx-color-surface);
+  border-color: var(--bnx-color-border-subtle);
+  color: var(--bnx-color-text-secondary);
+}
+.bnx-btn-secondary:hover:not(:disabled) {
+  background: var(--bnx-color-surface-subtle);
+  color: var(--bnx-color-text);
+}
+
+.bnx-btn-danger {
+  background: var(--bnx-color-danger);
+  color: var(--bnx-color-text-inverted);
+}
+.bnx-btn-danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.bnx-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Badges */
+.bnx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnx-space-1);
+  padding: 2px 8px;
+  font-size: var(--bnx-font-size-xs);
+  font-weight: 600;
+  border-radius: var(--bnx-radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+
+.bnx-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.bnx-badge-healthy {
+  background: var(--bnx-color-success-bg);
+  color: var(--bnx-color-success);
+  border-color: #bbf7d0;
+}
+
+.bnx-badge-disconnected {
+  background: var(--bnx-color-danger-bg);
+  color: var(--bnx-color-danger);
+  border-color: #fecaca;
+}
+
+.bnx-badge-warning {
+  background: var(--bnx-color-warning-bg);
+  color: var(--bnx-color-warning);
+  border-color: #fde68a;
+}
+
+.bnx-badge-empty {
+  background: var(--bnx-color-surface-subtle);
+  color: var(--bnx-color-text-muted);
+  border-color: var(--bnx-color-border);
+}
+
+.bnx-badge-primary {
+  background: var(--bnx-color-primary-light);
+  color: var(--bnx-color-primary-hover);
+  border-color: #bfdbfe;
+}
+
+/* Data Table */
+.bnx-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--bnx-color-border);
+  border-radius: var(--bnx-radius-md);
+}
+
+.bnx-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--bnx-font-size-base);
+}
+
+.bnx-table th {
+  background: var(--bnx-color-surface-subtle);
+  color: var(--bnx-color-text-secondary);
+  font-weight: 600;
+  padding: var(--bnx-space-3) var(--bnx-space-4);
+  border-bottom: 1px solid var(--bnx-color-border);
+}
+
+.bnx-table td {
+  padding: var(--bnx-space-3) var(--bnx-space-4);
+  border-bottom: 1px solid var(--bnx-color-border);
+  color: var(--bnx-color-text);
+}
+
+.bnx-table tr:last-child td {
+  border-bottom: none;
+}
+
+.bnx-table tr:hover td {
+  background: #fbfcfe;
+}
+
+/* Form Groups & Inputs */
+.bnx-form-group {
+  margin-bottom: var(--bnx-space-5);
+}
+
+.bnx-form-label {
+  display: block;
+  font-size: var(--bnx-font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--bnx-space-2);
+  color: var(--bnx-color-text);
+}
+
+.bnx-form-help {
+  font-size: var(--bnx-font-size-sm);
+  color: var(--bnx-color-text-muted);
+  margin-top: var(--bnx-space-1);
+}
+
+.bnx-input, .bnx-select {
+  width: 100%;
+  max-width: 480px;
+  padding: 8px 12px;
+  border: 1px solid var(--bnx-color-border-subtle);
+  border-radius: var(--bnx-radius-md);
+  font-size: var(--bnx-font-size-base);
+  color: var(--bnx-color-text);
+  background: var(--bnx-color-surface);
+  transition: border-color var(--bnx-transition-fast);
+}
+
+.bnx-input:focus, .bnx-select:focus {
+  border-color: var(--bnx-color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bnx-color-primary-light);
+}
+
+/* Empty State Container */
+.bnx-empty-state {
+  text-align: center;
+  padding: var(--bnx-space-10) var(--bnx-space-6);
+  border: 1px dashed var(--bnx-color-border-subtle);
+  border-radius: var(--bnx-radius-lg);
+  background: var(--bnx-color-surface-subtle);
+}
+
+.bnx-empty-title {
+  font-size: var(--bnx-font-size-lg);
+  font-weight: 600;
+  color: var(--bnx-color-text);
+  margin: var(--bnx-space-2) 0;
+}
+
+.bnx-empty-desc {
+  font-size: var(--bnx-font-size-md);
+  color: var(--bnx-color-text-muted);
+  max-width: 480px;
+  margin: 0 auto var(--bnx-space-4);
+  line-height: 1.5;
+}

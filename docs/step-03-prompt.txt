@@ -1,0 +1,2037 @@
+﻿<USER_REQUEST>
+# STEP 03 â€” WordPress Admin UI & User Experience Architecture
+
+
+
+Production-Level UI Engineering Specification
+
+Phase 03
+
+
+
+Step 03-à¦¤à§‡ à¦†à¦®à¦°à¦¾ BlogNexa AI-à¦à¦° à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ WordPress Admin interface à¦¤à§ˆà¦°à¦¿ à¦•à¦°à¦¬à¥¤ à¦à¦Ÿà¦¿ à¦¶à§à¦§à§ à¦¸à§à¦¨à§à¦¦à¦° Dashboard à¦¡à¦¿à¦œà¦¾à¦‡à¦¨ à¦•à¦°à¦¾à¦° à¦§à¦¾à¦ª à¦¨à§Ÿ; à¦à¦–à¦¾à¦¨à§‡ à¦à¦•à¦Ÿà¦¿ production-grade admin application-à¦à¦° information architecture, navigation, React component architecture, routing, state management, API integration, permission-aware UI, accessibility, responsive behavior, performance à¦à¦¬à¦‚ UI testing à¦¬à¦¾à¦¸à§à¦¤à¦¬à¦¾à§Ÿà¦¨ à¦•à¦°à¦¤à§‡ à¦¹à¦¬à§‡à¥¤
+
+Step 01 à¦“ Step 02-à¦à¦° architecture à¦…à¦¨à§à¦¯à¦¾à§Ÿà§€ à¦à¦‡ interface WordPress Admin-à¦à¦° à¦®à¦§à§à¦¯à§‡à¦‡ à¦¥à¦¾à¦•à¦¬à§‡à¥¤ à¦•à§‹à¦¨à§‹ à¦†à¦²à¦¾à¦¦à¦¾ SaaS dashboard-à¦•à§‡ primary interface à¦¹à¦¿à¦¸à§‡à¦¬à§‡ à¦¤à§ˆà¦°à¦¿ à¦•à¦°à¦¾ à¦¯à¦¾à¦¬à§‡ à¦¨à¦¾à¥¤
+
+à¦à¦‡ à¦§à¦¾à¦ªà§‡ à¦à¦•à¦Ÿà¦¿ à¦—à§à¦°à§à¦¤à§à¦¬à¦ªà§‚à¦°à§à¦£ engineering principle à¦¥à¦¾à¦•à¦¬à§‡:
+
+UI à¦•à¦–à¦¨à§‹ security boundary à¦¨à§Ÿà¥¤ à¦•à§‹à¦¨à§‹ button à¦²à§à¦•à¦¾à¦¨à§‹ à¦¥à¦¾à¦•à¦²à§‡à¦‡ permission enforcement à¦¸à¦®à§à¦ªà¦¨à§à¦¨ à¦¹à§Ÿ à¦¨à¦¾à¥¤ React interface à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦°à¦•à¦¾à¦°à§€à¦•à§‡ à¦¸à¦ à¦¿à¦• à¦…à¦­à¦¿à¦œà§à¦žà¦¤à¦¾ à¦¦à§‡à¦¬à§‡, à¦•à¦¿à¦¨à§à¦¤à§ à¦ªà§à¦°à¦¤à¦¿à¦Ÿà¦¿ privileged action-à¦à¦° à¦…à¦¨à§à¦®à¦¤à¦¿ WordPress REST API-à¦¤à§‡à¦‡ à¦¯à¦¾à¦šà¦¾à¦‡ à¦¹à¦¬à§‡à¥¤
+
+## 1. Step 03-à¦à¦° à¦®à§‚à¦² à¦²à¦•à§à¦·à§à¦¯
+
+Step 03 à¦¶à§‡à¦· à¦¹à¦²à§‡ à¦à¦•à¦œà¦¨ WordPress Administrator BlogNexa AI-à¦à¦° à¦­à§‡à¦¤à¦°à§‡ à¦ªà§à¦°à¦¬à§‡à¦¶ à¦•à¦°à§‡ à¦¸à¦¬ à¦®à§‚à¦² module navigate à¦•à¦°à¦¤à§‡ à¦ªà¦¾à¦°à¦¬à§‡à¦¨, system status à¦¦à§‡à¦–à¦¤à§‡ à¦ªà¦¾à¦°à¦¬à§‡à¦¨, settings à¦ªà¦°à¦¿à¦šà¦¾à¦²à¦¨à¦¾ à¦•à¦°à¦¤à§‡ à¦ªà¦¾à¦°à¦¬à§‡à¦¨ à¦à¦¬à¦‚ à¦ªà§à¦°à¦¤à¦¿à¦Ÿà¦¿ module-à¦à¦° à¦¬à¦¾à¦¸à§à¦¤à¦¬ implementation status à¦¬à§à¦à¦¤à§‡ à¦ªà¦¾à¦°à¦¬à§‡à¦¨à¥¤
+
+à¦à¦–à¦¾à¦¨à§‡ à¦¦à§à¦‡ à¦§à¦°à¦¨à§‡à¦° à¦•à¦¾à¦œ à¦†à¦²à¦¾à¦¦à¦¾ à¦°à¦¾à¦–à¦¤à§‡ à¦¹à¦¬à§‡:
+
+- UI Foundation: Layout, sidebar, routing, reusable components, API client, state management, error handling à¦à¦¬à¦‚ design systemà¥¤
+- Module Interface: Overview, Website Intelligence, Knowledge Base, Content Strategy, SEO Research, Blog Studio, Image Studio, Publishing, Analytics, Integrations à¦“ Settings-à¦à¦° screen structureà¥¤
+
+à¦¯à§‡ backend functionality à¦à¦–à¦¨à§‹ à¦¤à§ˆà¦°à¦¿ à¦¹à§Ÿà¦¨à¦¿, UI-à¦¤à§‡ à¦¸à§‡à¦Ÿà¦¿à¦•à§‡ fake data à¦¦à¦¿à§Ÿà§‡ à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ à¦•à¦¾à¦œ à¦•à¦°à¦›à§‡ à¦à¦®à¦¨ à¦¦à§‡à¦–à¦¾à¦¨à§‹ à¦¯à¦¾à¦¬à§‡ à¦¨à¦¾à¥¤ à¦¸à§‡à¦–à¦¾à¦¨à§‡ à¦¸à§à¦ªà¦·à§à¦Ÿ `Not configured`, `Coming in a later phase` à¦…à¦¥à¦¬à¦¾ `Backend connection required` state à¦¦à§‡à¦–à¦¾à¦¤à§‡ à¦¹à¦¬à§‡à¥¤
+
+## 2. Step 03 à¦¶à§à¦°à§ à¦•à¦°à¦¾à¦° à¦ªà§‚à¦°à§à¦¬à¦¶à¦°à§à¦¤
+
+Step 02-à¦à¦° React shell à¦“ REST foundation à¦¬à¦¾à¦¸à§à¦¤à¦¬à§‡ à¦¤à§ˆà¦°à¦¿ à¦à¦¬à¦‚ à¦ªà¦°à§€à¦•à§à¦·à¦¾ à¦•à¦°à¦¾ à¦¹à§Ÿà§‡à¦›à§‡â€”à¦à¦®à¦¨ à¦ªà§à¦°à¦®à¦¾à¦£ à¦¥à¦¾à¦•à¦¤à§‡ à¦¹à¦¬à§‡à¥¤ à¦¯à¦¦à¦¿ Step 01 + Step 02 combined verification à¦à¦–à¦¨à§‹ PASS à¦¨à¦¾ à¦•à¦°à§‡, à¦¤à¦¾à¦¹à¦²à§‡ Step 03-à¦à¦° à¦•à¦¾à¦œ à¦•à¦°à¦¾ à¦¯à¦¾à¦¬à§‡ à¦•à§‡à¦¬à¦² isolated UI development à¦¹à¦¿à¦¸à§‡à¦¬à§‡; production integration à¦“ acceptance gate à¦ªà¦¾à¦¸ à¦¹à§Ÿà§‡à¦›à§‡ à¦¬à¦²à§‡ à¦¦à¦¾à¦¬à¦¿ à¦•à¦°à¦¾ à¦¯à¦¾à¦¬à§‡ à¦¨à¦¾à¥¤
+
+à¦¯à§‡ à¦¬à¦¿à¦·à§Ÿà¦—à§à¦²à§‹ à¦†à¦—à§‡ à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à¦¤à§‡ à¦¹à¦¬à§‡:
+
+- WordPress Admin menu à¦“ React mount point à¦•à¦¾à¦œ à¦•à¦°à§‡à¥¤
+- Asset build à¦à¦¬à¦‚ enqueue à¦•à¦¾à¦œ à¦•à¦°à§‡à¥¤
+- REST namespace à¦“ permission callbacks à¦•à¦¾à¦œ à¦•à¦°à§‡à¥¤
+- Capability model à¦¨à¦¿à¦°à§à¦§à¦¾à¦°à¦¿à¦¤à¥¤
+- Settings API-à¦à¦° request/response contract à¦†à¦›à§‡à¥¤
+- Plugin-à¦à¦° error response convention à¦†à¦›à§‡à¥¤
+- Supported WordPress/PHP/browser environment à¦¨à¦¿à¦°à§à¦§à¦¾à¦°à¦¿à¦¤à¥¤
+
+# BLOGNEXA AI
+
+# STEP 03 â€” WORDPRESS ADMIN UI & USER EXPERIENCE IMPLEMENTATION
+
+**Document ID:** BNX-ENG-003\
+**Phase:** 03 â€” Admin UI & UX Engineering\
+**Related Documents:** BNX-ENG-001, BNX-ENG-002\
+**Implementation Target:** Production WordPress Plugin\
+**Primary Interface:** WordPress Admin Dashboard\
+**Frontend:** React + TypeScript + WordPress Components\
+**Backend Communication:** WordPress REST API\
+**Architecture:** Modular Admin Application\
+**Status:** Implementation Specification
+
+---
+
+# 1. EXECUTIVE OBJECTIVE
+
+The objective of Step 03 is to build a complete, production-ready administrative interface for BlogNexa AI inside WordPress Admin.
+
+The interface must provide a consistent experience across all product modules.
+
+The UI must be:
+
+- Modular.
+- Responsive.
+- Accessible.
+- Permission-aware.
+- API-driven.
+- Maintainable.
+- Performance-conscious.
+- Compatible with WordPress Admin.
+- Consistent with the approved product architecture.
+
+The interface must not contain duplicated business logic or direct AI-provider communication.
+
+## 1.1 Primary Product Experience
+
+The user opens WordPress Admin and sees:
+
+```
+WordPress Admin
+      |
+      v
+BlogNexa AI
+      |
+      v
+BlogNexa AI Admin Application
+      |
+      +-- Overview
+      +-- Website Intelligence
+      +-- Knowledge Base
+      +-- Content Strategy
+      +-- SEO Research
+      +-- Blog Studio
+      +-- Image Studio
+      +-- Publishing & Scheduling
+      +-- Performance Analytics
+      +-- Integrations
+      +-- Settings
+```
+
+All these modules must remain within the WordPress plugin interface.
+
+## 1.2 What Step 03 Must Deliver
+
+At the end of this phase:
+
+1. The React application must mount correctly.
+2. Sidebar navigation must work.
+3. Every module must have its own route and page component.
+4. Page permissions must be respected.
+5. The centralized API client must work.
+6. Loading, error, empty and unavailable states must be implemented.
+7. Settings must integrate with the existing REST API.
+8. Dashboard information must come from real backend responses where available.
+9. Responsive behavior must be verified.
+10. UI and integration tests must pass.
+
+---
+
+# 2. DESIGN AND ENGINEERING PRINCIPLES
+
+## 2.1 Design Philosophy
+
+BlogNexa AI should feel like a professional content operations platform.
+
+Design priorities:
+
+1. Information clarity.
+2. Operational visibility.
+3. Minimal unnecessary complexity.
+4. Fast navigation.
+5. Consistent interaction patterns.
+6. Accessible controls.
+7. Clear separation of AI-generated and verified information.
+
+Avoid designing the dashboard as a decorative marketing website.
+
+## 2.2 Design System Principles
+
+Use a controlled design system.
+
+Every component must use shared design tokens rather than arbitrary individual values.
+
+Define:
+
+- Color tokens.
+- Typography scale.
+- Spacing scale.
+- Border radius.
+- Shadows.
+- Z-index levels.
+- Layout widths.
+- Breakpoints.
+- Interaction states.
+- Focus states.
+- Status colors.
+
+## 2.3 Visual Direction
+
+Proposed visual direction:
+
+- Clean, modern SaaS-style admin interface.
+- Neutral light background.
+- White or neutral content surfaces.
+- Dark text.
+- Subtle borders.
+- Restrained accent color.
+- Clear typography hierarchy.
+- Compact operational data tables.
+- Consistent icons.
+
+The final accent palette must be approved and stored in the design tokens.
+
+Do not scatter hardcoded colors throughout the components.
+
+---
+
+# 3. INFORMATION ARCHITECTURE
+
+The sidebar is the primary navigation system.
+
+## 3.1 Main Navigation
+
+```
+BLOGNEXA AI
+
+Overview
+
+WEBSITE INTELLIGENCE
+  Website Intelligence
+  Knowledge Base
+
+CONTENT OPERATIONS
+  Content Strategy
+  SEO Research
+  Blog Studio
+  Image Studio
+
+PUBLISHING
+  Publishing & Scheduling
+  Performance Analytics
+
+SYSTEM
+  Integrations
+  Settings
+```
+
+The sidebar may use visual grouping, but each module must retain a stable route and permission requirement.
+
+## 3.2 Navigation Rules
+
+- Active route must be visually identifiable.
+- Navigation must support keyboard access.
+- Icons must be consistent.
+- Labels must be clear.
+- Long labels must not break the sidebar.
+- Navigation must not expose unauthorized modules.
+- Direct route access must still be checked by the application and backend.
+- Unknown routes must display a not-found page.
+- Disabled modules must explain why they are unavailable.
+
+## 3.3 Proposed Route Structure
+
+```
+/wp-admin/admin.php?page=blognexa-ai
+
+/wp-admin/admin.php?page=blognexa-ai-website
+/wp-admin/admin.php?page=blognexa-ai-knowledge
+/wp-admin/admin.php?page=blognexa-ai-strategy
+/wp-admin/admin.php?page=blognexa-ai-seo
+/wp-admin/admin.php?page=blognexa-ai-blog-studio
+/wp-admin/admin.php?page=blognexa-ai-image-studio
+/wp-admin/admin.php?page=blognexa-ai-publishing
+/wp-admin/admin.php?page=blognexa-ai-analytics
+/wp-admin/admin.php?page=blognexa-ai-integrations
+/wp-admin/admin.php?page=blognexa-ai-settings
+```
+
+Use the exact menu slugs approved in Step 02.
+
+Do not create multiple independent WordPress Admin applications for each module.
+
+A single React application should handle the internal navigation where practical.
+
+---
+
+# 4. FRONTEND TECHNOLOGY ARCHITECTURE
+
+## 4.1 Required Technology
+
+- React.
+- TypeScript.
+- WordPress Components.
+- WordPress Element where appropriate.
+- WordPress REST API.
+- npm.
+- Vite or the approved WordPress-compatible build pipeline.
+- ESLint.
+- TypeScript compiler.
+
+Use the WordPress-provided packages and dependencies appropriately.
+
+Do not bundle an unnecessary second copy of React when the WordPress environment already provides the required runtime.
+
+The final build strategy must be compatible with the approved WordPress and PHP versions.
+
+## 4.2 Application Architecture
+
+Separate the application into these layers:
+
+```
+React Admin Application
+        |
+        v
+Presentation Layer
+        |
+        v
+Page Components
+        |
+        v
+Feature Components
+        |
+        v
+Application Services
+        |
+        v
+API Client
+        |
+        v
+WordPress REST API
+        |
+        v
+Plugin Controllers
+```
+
+Responsibilities:
+
+| Layer          | Responsibility                        |
+| -------------- | ------------------------------------- |
+| Presentation   | Visual layout and styling             |
+| Pages          | Page-level composition                |
+| Features       | Module-specific components            |
+| Services       | Business-oriented frontend operations |
+| API Client     | HTTP communication                    |
+| WordPress REST | Authorization and server operations   |
+
+Do not place REST requests directly inside every button component.
+
+Do not let visual components independently construct API URLs.
+
+---
+
+# 5. REQUIRED FRONTEND DIRECTORY STRUCTURE
+
+Use the following structure or an equivalent approved structure.
+
+```
+resources/
+â”‚
+â”œâ”€â”€ js/
+â”‚   â”‚
+â”‚   â”œâ”€â”€ admin/
+â”‚   â”‚   â”œâ”€â”€ index.tsx
+â”‚   â”‚   â”œâ”€â”€ App.tsx
+â”‚   â”‚   â”œâ”€â”€ app-routes.tsx
+â”‚   â”‚   â””â”€â”€ app-config.ts
+â”‚   â”‚
+â”‚   â”œâ”€â”€ layouts/
+â”‚   â”‚   â”œâ”€â”€ AdminLayout.tsx
+â”‚   â”‚   â”œâ”€â”€ Sidebar.tsx
+â”‚   â”‚   â”œâ”€â”€ Header.tsx
+â”‚   â”‚   â”œâ”€â”€ MainContent.tsx
+â”‚   â”‚   â””â”€â”€ PageHeader.tsx
+â”‚   â”‚
+â”‚   â”œâ”€â”€ components/
+â”‚   â”‚   â”œâ”€â”€ Button/
+â”‚   â”‚   â”œâ”€â”€ Card/
+â”‚   â”‚   â”œâ”€â”€ Modal/
+â”‚   â”‚   â”œâ”€â”€ Badge/
+â”‚   â”‚   â”œâ”€â”€ DataTable/
+â”‚   â”‚   â”œâ”€â”€ EmptyState/
+â”‚   â”‚   â”œâ”€â”€ ErrorState/
+â”‚   â”‚   â”œâ”€â”€ LoadingState/
+â”‚   â”‚   â”œâ”€â”€ StatusIndicator/
+â”‚   â”‚   â”œâ”€â”€ SearchInput/
+â”‚   â”‚   â”œâ”€â”€ Pagination/
+â”‚   â”‚   â””â”€â”€ ConfirmDialog/
+â”‚   â”‚
+â”‚   â”œâ”€â”€ features/
+â”‚   â”‚   â”œâ”€â”€ overview/
+â”‚   â”‚   â”œâ”€â”€ website-intelligence/
+â”‚   â”‚   â”œâ”€â”€ knowledge-base/
+â”‚   â”‚   â”œâ”€â”€ content-strategy/
+â”‚   â”‚   â”œâ”€â”€ seo-research/
+â”‚   â”‚   â”œâ”€â”€ blog-studio/
+â”‚   â”‚   â”œâ”€â”€ image-studio/
+â”‚   â”‚   â”œâ”€â”€ publishing/
+â”‚   â”‚   â”œâ”€â”€ analytics/
+â”‚   â”‚   â”œâ”€â”€ integrations/
+â”‚   â”‚   â””â”€â”€ settings/
+â”‚   â”‚
+â”‚   â”œâ”€â”€ services/
+â”‚   â”‚   â”œâ”€â”€ api-client.ts
+â”‚   â”‚   â”œâ”€â”€ status-service.ts
+â”‚   â”‚   â”œâ”€â”€ settings-service.ts
+â”‚   â”‚   â”œâ”€â”€ connection-service.ts
+â”‚   â”‚   â””â”€â”€ error-handler.ts
+â”‚   â”‚
+â”‚   â”œâ”€â”€ hooks/
+â”‚   â”‚   â”œâ”€â”€ useCurrentUser.ts
+â”‚   â”‚   â”œâ”€â”€ useCapabilities.ts
+â”‚   â”‚   â”œâ”€â”€ useSystemStatus.ts
+â”‚   â”‚   â””â”€â”€ useDebounce.ts
+â”‚   â”‚
+â”‚   â”œâ”€â”€ state/
+â”‚   â”‚   â”œâ”€â”€ app-context.tsx
+â”‚   â”‚   â”œâ”€â”€ navigation-context.tsx
+â”‚   â”‚   â””â”€â”€ settings-context.tsx
+â”‚   â”‚
+â”‚   â”œâ”€â”€ types/
+â”‚   â”‚   â”œâ”€â”€ api.ts
+â”‚   â”‚   â”œâ”€â”€ user.ts
+â”‚   â”‚   â”œâ”€â”€ settings.ts
+â”‚   â”‚   â””â”€â”€ modules.ts
+â”‚   â”‚
+â”‚   â””â”€â”€ utils/
+â”‚       â”œâ”€â”€ format-date.ts
+â”‚       â”œâ”€â”€ format-number.ts
+â”‚       â””â”€â”€ permission-utils.ts
+â”‚
+â””â”€â”€ css/
+    â”œâ”€â”€ admin.css
+    â”œâ”€â”€ tokens.css
+    â”œâ”€â”€ layout.css
+    â”œâ”€â”€ components.css
+    â””â”€â”€ utilities.css
+```
+
+Feature-specific components should stay inside their feature directory.
+
+Shared components should only be created when multiple modules genuinely need them.
+
+---
+
+# 6. APPLICATION BOOTSTRAP
+
+Files:
+
+```
+resources/js/admin/index.tsx
+resources/js/admin/App.tsx
+```
+
+## 6.1 Bootstrap Responsibilities
+
+- Locate the React root element.
+- Read the server-provided configuration.
+- Validate required configuration.
+- Initialize the application.
+- Register global error handling.
+- Initialize navigation.
+- Mount the React application.
+- Avoid duplicate mounting.
+
+## 6.2 Server Configuration
+
+WordPress may provide:
+
+- REST API root.
+- REST nonce.
+- Current user's permitted capabilities.
+- Plugin version.
+- Current route.
+- Site locale.
+- Plugin configuration.
+
+This information must be provided through a safe server-side mechanism.
+
+Never provide:
+
+- AI API keys.
+- Backend signing keys.
+- Raw authentication secrets.
+- Private infrastructure credentials.
+
+The frontend must not assume that a capability value supplied during page rendering remains authoritative forever. The backend must check permissions again on every protected operation.
+
+---
+
+# 7. DESIGN SYSTEM IMPLEMENTATION
+
+Create a centralized token system.
+
+## 7.1 Color Tokens
+
+Example:
+
+```
+:root {
+  --bnx-color-primary: #4f46e5;
+  --bnx-color-primary-hover: #4338ca;
+
+  --bnx-color-background: #f8fafc;
+  --bnx-color-surface: #ffffff;
+
+  --bnx-color-text: #0f172a;
+  --bnx-color-text-muted: #64748b;
+
+  --bnx-color-border: #e2e8f0;
+
+  --bnx-color-success: #15803d;
+  --bnx-color-warning: #b45309;
+  --bnx-color-danger: #b91c1c;
+  --bnx-color-info: #0369a1;
+}
+```
+
+These are example values. Final tokens must be centralized and approved.
+
+## 7.2 Typography
+
+Define:
+
+- Page title.
+- Section title.
+- Card title.
+- Body text.
+- Supporting text.
+- Form label.
+- Helper text.
+- Table text.
+- Numeric data.
+
+Use a consistent type scale.
+
+## 7.3 Spacing
+
+Create a shared spacing scale.
+
+Example:
+
+```
+:root {
+  --bnx-space-1: 4px;
+  --bnx-space-2: 8px;
+  --bnx-space-3: 12px;
+  --bnx-space-4: 16px;
+  --bnx-space-5: 20px;
+  --bnx-space-6: 24px;
+  --bnx-space-8: 32px;
+  --bnx-space-10: 40px;
+}
+```
+
+Do not use arbitrary spacing values without a clear reason.
+
+## 7.4 Component States
+
+Every interactive component must support:
+
+- Default.
+- Hover.
+- Focus.
+- Active.
+- Disabled.
+- Loading.
+- Error where applicable.
+
+Focus must remain visible for keyboard users.
+
+---
+
+# 8. ADMIN LAYOUT ARCHITECTURE
+
+The application layout consists of:
+
+```
++----------------------------------------------------------+
+| WordPress Admin Header                                   |
++----------------------------------------------------------+
+| BlogNexa Header                                          |
++----------------------+-----------------------------------+
+|                      |                                   |
+| Sidebar              | Main Content                      |
+|                      |                                   |
+| Overview             | Page Header                       |
+| Website Intelligence | Breadcrumb                        |
+| Knowledge Base       |                                   |
+| Content Strategy     | Main Page Content                 |
+| SEO Research         |                                   |
+| Blog Studio          |                                   |
+| Image Studio         |                                   |
+| Publishing           |                                   |
+| Analytics            |                                   |
+| Integrations         |                                   |
+| Settings             |                                   |
+|                      |                                   |
++----------------------+-----------------------------------+
+```
+
+## 8.1 Sidebar Requirements
+
+- Desktop: persistent navigation.
+- Tablet: collapsible navigation.
+- Mobile: compact navigation or drawer.
+- Active route highlighting.
+- Accessible navigation controls.
+- Clear tooltips when labels are collapsed.
+- No horizontal overflow.
+
+## 8.2 Header Requirements
+
+The header should display:
+
+- Current module/page.
+- Website connection indicator.
+- System status.
+- Optional help/documentation link.
+- Current WordPress site context.
+
+Do not add decorative notification icons unless notifications actually exist.
+
+## 8.3 Page Header
+
+Every module page should have:
+
+- Page title.
+- Short description.
+- Breadcrumb where useful.
+- Main action when available.
+- Contextual secondary actions.
+
+Avoid placing multiple competing primary actions in the page header.
+
+---
+
+# 9. GLOBAL APPLICATION STATES
+
+All modules must follow consistent state handling.
+
+## 9.1 Loading State
+
+Use a skeleton or spinner based on the expected loading duration.
+
+Do not display fabricated metrics while data is loading.
+
+## 9.2 Empty State
+
+An empty state must explain:
+
+- What the module does.
+- Why there is no data yet.
+- What action the user can take next.
+
+## 9.3 Error State
+
+An error must explain:
+
+- What operation failed.
+- Whether the issue is recoverable.
+- What the user can do.
+- Whether retry is safe.
+
+Never show raw stack traces to users.
+
+## 9.4 Permission State
+
+If the current user lacks permission:
+
+- Hide or disable the relevant action according to UX policy.
+- Explain that the user does not have the required permission.
+- Do not leak protected data.
+- Let the REST API enforce the final decision.
+
+## 9.5 Unconfigured State
+
+For example, if the backend is not connected:
+
+Display a clear connection requirement instead of showing fake successful data.
+
+## 9.6 Offline or Backend Unavailable State
+
+The application must distinguish:
+
+- WordPress REST failure.
+- Backend connection failure.
+- AI provider unavailable.
+- Temporary network interruption.
+- Invalid configuration.
+
+A failed AI provider must not make the entire WordPress Admin application unusable.
+
+---
+
+# 10. MODULE 01 â€” OVERVIEW DASHBOARD
+
+Route:
+
+`blognexa-ai`
+
+Purpose:
+
+Provide an operational overview of the plugin.
+
+## 10.1 Dashboard Layout
+
+Sections:
+
+1. Website connection.
+2. Website intelligence status.
+3. Knowledge base status.
+4. Content activity.
+5. Pending approvals.
+6. Scheduled publications.
+7. Recent jobs.
+8. System health.
+
+## 10.2 Proposed Dashboard Components
+
+### Website Connection Card
+
+Fields:
+
+- Connected/disconnected.
+- Website identifier.
+- Last synchronization.
+- Backend status.
+
+Actions:
+
+- View connection.
+- Configure connection.
+
+### Website Intelligence Card
+
+Fields:
+
+- Total discovered pages.
+- Successfully processed pages.
+- Failed pages.
+- Last scan date.
+
+These metrics must come from actual backend data.
+
+### Knowledge Base Card
+
+Fields:
+
+- Indexed documents.
+- Indexed chunks.
+- Last update.
+- Knowledge synchronization status.
+
+### Content Activity Card
+
+Fields:
+
+- Draft articles.
+- Articles awaiting review.
+- Scheduled articles.
+- Published articles.
+
+### Recent Activity
+
+Display real events such as:
+
+- Website scan started.
+- Website scan completed.
+- Article generated.
+- Draft saved.
+- Publication scheduled.
+- Integration disconnected.
+
+Every activity record should have a timestamp and meaningful status.
+
+## 10.3 Dashboard Acceptance
+
+- No fake KPI values.
+- No misleading progress indicators.
+- All metrics must identify their source.
+- Empty states must be useful.
+- Failed services must be visible without crashing the page.
+
+---
+
+# 11. MODULE 02 â€” WEBSITE INTELLIGENCE
+
+Route:
+
+`blognexa-ai-website`
+
+Purpose:
+
+Provide the interface for discovering and analyzing the connected website.
+
+## 11.1 Page Sections
+
+- Website overview.
+- Scan controls.
+- Scan configuration.
+- Scan progress.
+- Discovered pages.
+- Processing errors.
+- Scan history.
+
+## 11.2 Scan Configuration UI
+
+Possible controls:
+
+- Scan eligible pages.
+- Include posts.
+- Include pages.
+- Include selected custom post types.
+- Exclude URL patterns.
+- Respect robots.txt.
+- Incremental scan.
+- Full rescan.
+
+Only expose options that the backend actually supports.
+
+## 11.3 Scan Progress
+
+Display:
+
+- Job ID.
+- Current state.
+- Discovered URLs.
+- Processed URLs.
+- Failed URLs.
+- Start time.
+- Last update.
+
+Do not display a percentage unless the backend provides a defensible progress calculation.
+
+## 11.4 Page Inventory Table
+
+Columns:
+
+- Title.
+- URL.
+- Content type.
+- Last modified.
+- Processing status.
+- Last scanned.
+- Actions.
+
+Actions must be permission-controlled.
+
+## 11.5 Safety
+
+A scan request must be submitted to the backend as a controlled job.
+
+The frontend must not directly crawl arbitrary URLs.
+
+---
+
+# 12. MODULE 03 â€” KNOWLEDGE BASE
+
+Route:
+
+`blognexa-ai-knowledge`
+
+Purpose:
+
+Manage the persistent website knowledge system.
+
+## 12.1 Page Sections
+
+- Knowledge status.
+- Source documents.
+- Indexed content.
+- Failed documents.
+- Synchronization history.
+- Refresh controls.
+
+## 12.2 Source Table
+
+Columns:
+
+- Document title.
+- Source URL.
+- Document type.
+- Version.
+- Last indexed.
+- Status.
+
+## 12.3 Actions
+
+- View source.
+- Refresh document.
+- Retry failed indexing.
+- Inspect indexing status.
+
+Deletion must require the correct permission and confirmation.
+
+## 12.4 Knowledge Details
+
+Display:
+
+- Source information.
+- Processing status.
+- Content version.
+- Indexing timestamp.
+- Error summary where applicable.
+
+Do not expose raw embeddings or internal vector database implementation details to ordinary users.
+
+---
+
+# 13. MODULE 04 â€” CONTENT STRATEGY
+
+Route:
+
+`blognexa-ai-strategy`
+
+Purpose:
+
+Manage topic strategy and content opportunities.
+
+## 13.1 Page Sections
+
+- Business context.
+- Target audience.
+- Content pillars.
+- Topic clusters.
+- Content gaps.
+- Recommended topics.
+- Editorial priorities.
+
+## 13.2 Topic Card
+
+Fields:
+
+- Topic.
+- Search intent.
+- Suggested category.
+- Priority.
+- Related keyword.
+- Research status.
+- Recommended next action.
+
+AI recommendations must be identifiable as recommendations, not verified business facts.
+
+## 13.3 Actions
+
+- Generate strategy.
+- Review recommendations.
+- Approve topic.
+- Send topic to SEO Research.
+- Send topic to Blog Studio.
+
+These actions must use actual backend services once implemented.
+
+---
+
+# 14. MODULE 05 â€” SEO RESEARCH
+
+Route:
+
+`blognexa-ai-seo`
+
+Purpose:
+
+Provide a structured SEO research workspace.
+
+## 14.1 Main Sections
+
+- Keyword research.
+- Search intent.
+- Keyword clusters.
+- Competitor research.
+- SERP research.
+- Content opportunities.
+- Research history.
+
+## 14.2 Keyword Table
+
+Columns:
+
+- Keyword.
+- Search intent.
+- Search volume.
+- Keyword difficulty.
+- Data source.
+- Collection date.
+- Cluster.
+- Status.
+
+Only display numeric metrics if a connected provider returned them.
+
+Unknown values must remain unknown, not become invented estimates.
+
+## 14.3 Research Workflow
+
+```
+Select Topic
+    |
+    v
+Submit Research Request
+    |
+    v
+Backend Research Job
+    |
+    v
+Retrieve Research Results
+    |
+    v
+Review Keywords
+    |
+    v
+Approve Topic
+    |
+    v
+Send to Blog Studio
+```
+
+---
+
+# 15. MODULE 06 â€” BLOG STUDIO
+
+Route:
+
+`blognexa-ai-blog-studio`
+
+Purpose:
+
+Provide the main article research and creation workspace.
+
+This is a critical product module and requires a carefully designed editing experience.
+
+## 15.1 Main Layout
+
+```
++-----------------------------------------------------------+
+| Blog Studio                                               |
++---------------------+-------------------------------------+
+| Article Workflow    | Article Workspace                  |
+|                     |                                     |
+| Topic               | Article Title                       |
+| Research            |                                     |
+| Outline             | Editor                              |
+| Draft               |                                     |
+| Review              | SEO Information                     |
+| Approval            |                                     |
+|                     |                                     |
++---------------------+-------------------------------------+
+```
+
+## 15.2 Workflow Stages
+
+- Topic selection.
+- Research.
+- Article brief.
+- Outline.
+- Draft generation.
+- Editing.
+- SEO review.
+- Quality review.
+- Approval.
+
+## 15.3 Article Editor Requirements
+
+- Clear editing interface.
+- Save status.
+- Word count.
+- Heading structure.
+- Content outline.
+- Research reference panel.
+- Internal link recommendations.
+- SEO metadata panel.
+- Review comments where supported.
+- Version history when implemented.
+
+## 15.4 AI Content Indicators
+
+Clearly identify:
+
+- AI-generated content.
+- Human-edited content.
+- Verified external research.
+- AI recommendations.
+- Unverified statements.
+
+Do not imply that generated content has been fact-checked unless a verification process actually occurred.
+
+## 15.5 Save Behavior
+
+- Support manual save.
+- Provide a clear save indicator.
+- Avoid silent data loss.
+- Use versioning or revision-safe updates.
+- Handle concurrent editing safely where applicable.
+- Prevent accidental duplicate article creation.
+
+The actual article editor may use the WordPress editor integration or an approved dedicated editor. Choose one based on content requirements, compatibility and accessibilityâ€”not merely visual preference.
+
+---
+
+# 16. MODULE 07 â€” IMAGE STUDIO
+
+Route:
+
+`blognexa-ai-image-studio`
+
+Purpose:
+
+Manage AI image generation and article visual assets.
+
+## 16.1 Sections
+
+- Image generation.
+- Prompt editor.
+- Image presets.
+- Generated image gallery.
+- Media Library selection.
+- Featured image assignment.
+- Alt text management.
+
+## 16.2 Image Card
+
+Display:
+
+- Preview.
+- Generation status.
+- Image dimensions.
+- File type.
+- Alt text.
+- Related article.
+- Media Library status.
+
+## 16.3 Actions
+
+- Generate image.
+- Regenerate.
+- Edit prompt.
+- Select as featured image.
+- Insert into article.
+- Update alt text.
+
+Do not display an image as successfully generated before the backend confirms the result and the asset is available.
+
+---
+
+# 17. MODULE 08 â€” PUBLISHING & SCHEDULING
+
+Route:
+
+`blognexa-ai-publishing`
+
+Purpose:
+
+Manage editorial operations.
+
+## 17.1 Views
+
+- All content.
+- Drafts.
+- Pending approval.
+- Scheduled.
+- Published.
+- Failed publications.
+
+## 17.2 Editorial Calendar
+
+Calendar views:
+
+- Month.
+- Week.
+- List.
+
+Every event must include:
+
+- Article title.
+- Scheduled time.
+- WordPress status.
+- Approval state.
+- Assigned user where applicable.
+
+## 17.3 Publication Actions
+
+- Preview.
+- Edit.
+- Approve.
+- Reject.
+- Schedule.
+- Publish.
+- Cancel schedule.
+
+## 17.4 Confirmation Requirements
+
+Before a publication action:
+
+- Confirm the target article.
+- Confirm the publication status.
+- Verify user capability.
+- Prevent accidental duplicate actions.
+- Display the result of the server operation.
+
+The UI must never treat a request being sent as proof that publication succeeded.
+
+---
+
+# 18. MODULE 09 â€” PERFORMANCE ANALYTICS
+
+Route:
+
+`blognexa-ai-analytics`
+
+Purpose:
+
+Display available content and performance information.
+
+## 18.1 Sections
+
+- Content performance.
+- Published article statistics.
+- Search performance.
+- Content freshness.
+- Refresh opportunities.
+- Reporting history.
+
+## 18.2 Data Requirements
+
+Every metric must have:
+
+- A definition.
+- A source.
+- A time range.
+- A collection timestamp.
+- A clear unavailable state.
+
+Do not create fake impressions, clicks, rankings or traffic values.
+
+If an analytics provider is not connected, explain that the relevant data source is unavailable.
+
+---
+
+# 19. MODULE 10 â€” INTEGRATIONS
+
+Route:
+
+`blognexa-ai-integrations`
+
+Purpose:
+
+Manage external service integrations.
+
+## 19.1 Integration Categories
+
+- WordPress Core.
+- AI providers.
+- SEO plugins.
+- Research providers.
+- Image providers.
+- Analytics providers.
+- Backend connection.
+
+## 19.2 Integration Card
+
+Display:
+
+- Integration name.
+- Description.
+- Connection status.
+- Supported capabilities.
+- Last connection check.
+- Configuration action.
+
+## 19.3 Secret Handling
+
+The frontend must never display full stored credentials.
+
+Use masked status indicators.
+
+Where credential entry is supported:
+
+- Send credentials through the protected server-side endpoint.
+- Never persist them in browser local storage.
+- Never include them in logs.
+- Never return them from a read endpoint.
+- Support rotation and revocation.
+
+---
+
+# 20. MODULE 11 â€” SETTINGS
+
+Route:
+
+`blognexa-ai-settings`
+
+Settings should use tabbed navigation where appropriate.
+
+## 20.1 General
+
+- Plugin status.
+- Website identity.
+- Language preferences.
+- Default content type.
+- Timezone display.
+
+## 20.2 AI Configuration
+
+- Active AI provider.
+- Available provider capabilities.
+- Default model selection.
+- Provider connection status.
+
+Do not expose provider API secrets after they have been stored.
+
+## 20.3 Content Preferences
+
+- Default language.
+- Writing style.
+- Brand voice.
+- Content structure.
+- Default article settings.
+
+## 20.4 Publishing
+
+- Default approval mode.
+- Automatic publishing enablement.
+- Maximum scheduled posts.
+- Publication time preferences.
+- Required review rules.
+
+Automatic publishing must remain disabled by default unless an explicit approved product decision says otherwise.
+
+## 20.5 Permissions
+
+Display configured BlogNexa capabilities and permitted roles/users.
+
+Only users with the appropriate settings-management capability can change permission configuration.
+
+## 20.6 Data and Privacy
+
+- Data retention settings.
+- Knowledge refresh policy.
+- Disconnect backend.
+- Data deletion request.
+- Export options when supported.
+
+Do not promise deletion from a backend until the backend confirms completion.
+
+## 20.7 System Diagnostics
+
+- Plugin version.
+- PHP version.
+- WordPress version.
+- Database version.
+- Backend connection status.
+- Last health check.
+- Available diagnostic information.
+
+Do not reveal private server secrets or sensitive filesystem information.
+
+---
+
+# 21. CENTRALIZED API CLIENT
+
+File:
+
+`resources/js/services/api-client.ts`
+
+All frontend requests must use one API client.
+
+Responsibilities:
+
+- Read the WordPress REST API base URL.
+- Read the current REST nonce.
+- Send requests.
+- Normalize responses.
+- Normalize errors.
+- Handle authentication failures.
+- Handle network failures.
+- Support cancellation.
+- Support pagination.
+- Prevent accidental duplicate submissions where appropriate.
+
+## 21.1 Request Rules
+
+- Use same-site WordPress REST routes.
+- Send the appropriate nonce header for authenticated cookie-based REST requests.
+- Do not store credentials in local storage.
+- Do not hardcode production URLs.
+- Do not expose backend secrets.
+- Use bounded request timeouts where appropriate.
+- Validate response structure before consuming it.
+
+## 21.2 Error Model
+
+Standard frontend errors:
+
+```
+VALIDATION_ERROR
+AUTHENTICATION_ERROR
+PERMISSION_ERROR
+NOT_FOUND
+NETWORK_ERROR
+BACKEND_UNAVAILABLE
+CONFIGURATION_ERROR
+SERVER_ERROR
+UNKNOWN_ERROR
+```
+
+The UI should map server errors into understandable messages.
+
+Do not expose raw internal exceptions.
+
+---
+
+# 22. STATE MANAGEMENT
+
+Use the simplest state architecture that fits the application.
+
+Recommended:
+
+- Local component state for simple interactions.
+- Shared context for global app configuration.
+- A dedicated server-state library only if the application complexity justifies it.
+- URL state for navigation and shareable filters where appropriate.
+
+Avoid introducing multiple competing state libraries.
+
+## 22.1 Server State vs UI State
+
+Server state includes:
+
+- Website scan status.
+- Settings.
+- Jobs.
+- Knowledge documents.
+- Articles.
+- Publication records.
+
+UI state includes:
+
+- Open sidebar.
+- Selected tab.
+- Modal visibility.
+- Temporary form values.
+- Table selection.
+
+Do not duplicate authoritative server data in multiple unrelated stores.
+
+## 22.2 Cache Rules
+
+- Define cache freshness.
+- Invalidate after successful mutations.
+- Avoid caching secrets.
+- Avoid displaying stale status as current.
+- Provide explicit refresh behavior.
+- Handle backend reconnection.
+
+---
+
+# 23. FORMS AND VALIDATION
+
+All forms must use explicit validation rules.
+
+## 23.1 Form Requirements
+
+- Clear labels.
+- Required field indicators.
+- Inline errors.
+- Helper text.
+- Safe defaults.
+- Save and cancel actions.
+- Unsaved-change warning when appropriate.
+- Server-side validation.
+
+Frontend validation improves usability but does not replace backend validation.
+
+## 23.2 Destructive Actions
+
+Examples:
+
+- Disconnect backend.
+- Delete knowledge data.
+- Remove integration.
+- Delete stored configuration.
+
+These actions must:
+
+1. Require appropriate permission.
+2. Display a confirmation dialog.
+3. Explain the consequence.
+4. Execute through a protected API.
+5. Display the actual result.
+6. Avoid irreversible actions without a documented policy.
+
+---
+
+# 24. RESPONSIVE DESIGN
+
+The interface must work on desktop, tablet and mobile-sized screens.
+
+## 24.1 Desktop
+
+- Persistent sidebar.
+- Full dashboard layout.
+- Multi-column cards where appropriate.
+- Full data tables.
+
+## 24.2 Tablet
+
+- Collapsible sidebar.
+- Flexible grid.
+- Scrollable tables where necessary.
+- Compact page actions.
+
+## 24.3 Mobile
+
+- Drawer or compact navigation.
+- Single-column cards.
+- Stacked forms.
+- Scrollable data tables.
+- Accessible buttons.
+- No horizontal page overflow.
+
+## 24.4 Breakpoints
+
+Use a centralized breakpoint system.
+
+Example:
+
+```
+Mobile: up to 767px
+Tablet: 768px to 1023px
+Desktop: 1024px and above
+```
+
+These are proposed design breakpoints. Test actual content and layouts rather than relying only on breakpoint values.
+
+---
+
+# 25. ACCESSIBILITY REQUIREMENTS
+
+Target WCAG 2.2 AA where practical.
+
+Required controls:
+
+- Semantic HTML.
+- Keyboard navigation.
+- Visible focus states.
+- Accessible labels.
+- Accessible form errors.
+- Modal focus management.
+- Appropriate heading hierarchy.
+- Sufficient contrast.
+- Screen-reader announcements for important status changes.
+- No color-only status communication.
+- Reduced-motion support.
+
+Use WordPress accessibility conventions where applicable.
+
+---
+
+# 26. PERFORMANCE REQUIREMENTS
+
+The admin application must remain lightweight.
+
+Required controls:
+
+- Route-level code splitting.
+- Lazy-loaded modules.
+- Minimal initial JavaScript bundle.
+- No unnecessary third-party scripts.
+- No duplicate React runtime.
+- Avoid excessive re-rendering.
+- Paginate large datasets.
+- Debounce search input.
+- Cancel obsolete requests where appropriate.
+- Avoid loading every module's data during initial page load.
+
+Only load the data required by the current page.
+
+---
+
+# 27. SECURITY REQUIREMENTS FOR THE FRONTEND
+
+The frontend must:
+
+1. Never contain AI provider secrets.
+2. Never contain backend signing keys.
+3. Never bypass WordPress authorization.
+4. Never trust user-controlled IDs.
+5. Never trust frontend capability flags as final authorization.
+6. Avoid unsafe HTML injection.
+7. Avoid rendering untrusted HTML without controlled sanitization.
+8. Never expose internal error details.
+9. Avoid sensitive browser storage.
+10. Use safe link handling.
+11. Validate data before displaying it.
+12. Prevent unauthorized destructive operations through the backend permission model.
+
+Every important action must be protected by server-side capability and resource ownership checks.
+
+---
+
+# 28. TESTING STRATEGY
+
+Step 03 must include automated UI and integration testing.
+
+## 28.1 Component Tests
+
+Test:
+
+- Sidebar.
+- Header.
+- Page header.
+- Buttons.
+- Cards.
+- Forms.
+- Tables.
+- Modals.
+- Loading states.
+- Empty states.
+- Error states.
+- Permission states.
+
+## 28.2 Page Tests
+
+Test:
+
+- Overview.
+- Website Intelligence.
+- Knowledge Base.
+- Content Strategy.
+- SEO Research.
+- Blog Studio.
+- Image Studio.
+- Publishing.
+- Analytics.
+- Integrations.
+- Settings.
+
+Each page must render correctly for loading, success, empty and error conditions relevant to that page.
+
+## 28.3 API Integration Tests
+
+Verify:
+
+- Correct REST URL.
+- Correct nonce header.
+- Correct request body.
+- Correct error mapping.
+- Invalid response handling.
+- Unauthorized response handling.
+- Backend unavailable handling.
+- No secrets exposed in requests or responses.
+
+## 28.4 Permission Tests
+
+Test at least:
+
+- Administrator.
+- Editor with approved capabilities.
+- Author with restricted capabilities.
+- User without plugin access.
+- Anonymous visitor.
+
+The expected result must match the approved Step 01 capability matrix.
+
+## 28.5 Browser Tests
+
+Use Playwright or an equivalent browser automation tool.
+
+Test:
+
+- Login to WordPress.
+- Open BlogNexa AI.
+- Navigate all modules.
+- Submit settings form.
+- Trigger validation error.
+- Open and close dialogs.
+- Test restricted access.
+- Test responsive navigation.
+- Check browser console errors.
+
+## 28.6 Visual Regression
+
+Capture screenshots of:
+
+- Desktop overview.
+- Desktop module pages.
+- Tablet layout.
+- Mobile layout.
+- Empty states.
+- Error states.
+- Settings screens.
+
+Compare screenshots after significant UI changes.
+
+Do not approve a visual regression merely because the page technically renders.
+
+---
+
+# 29. ACCEPTANCE CRITERIA
+
+Step 03 is complete only when:
+
+- React admin application mounts correctly.
+- Navigation works.
+- All routes resolve correctly.
+- Unknown routes show a not-found state.
+- Sidebar reflects permissions.
+- Backend authorization remains enforced.
+- Design tokens are centralized.
+- Shared components are reusable.
+- All module page structures exist.
+- Implemented and unimplemented features are clearly distinguished.
+- Central API client works.
+- Settings integration works with the real REST API.
+- Error handling works.
+- Loading and empty states work.
+- Responsive layouts work.
+- Accessibility checks pass.
+- No critical frontend security issue remains.
+- No critical browser console error remains.
+- Production frontend build succeeds.
+- Unit and integration tests pass.
+- Step 01 + Step 02 regression suite still passes.
+
+---
+
+# 30. ANTIGRAVITY IMPLEMENTATION WORKFLOW
+
+The coding agent must follow this order.
+
+## Milestone 01 â€” Repository Audit
+
+- Read Step 01.
+- Read Step 02.
+- Inspect the current plugin.
+- Inspect React build configuration.
+- Inspect REST contracts.
+- Inspect existing test results.
+- Identify missing dependencies.
+
+Deliverable: Repository audit report.
+
+## Milestone 02 â€” Frontend Foundation
+
+- Configure TypeScript.
+- Configure React entry point.
+- Configure build pipeline.
+- Configure WordPress dependencies.
+- Implement app bootstrap.
+
+Deliverable: Working React mount.
+
+## Milestone 03 â€” Design System
+
+- Define tokens.
+- Define typography.
+- Define spacing.
+- Define colors.
+- Define breakpoints.
+- Define shared interaction states.
+
+Deliverable: Design system.
+
+## Milestone 04 â€” Layout
+
+- Implement AdminLayout.
+- Implement Sidebar.
+- Implement Header.
+- Implement PageHeader.
+- Implement responsive behavior.
+
+Deliverable: Working admin shell.
+
+## Milestone 05 â€” Navigation
+
+- Implement all routes.
+- Implement active route state.
+- Implement permission-aware navigation.
+- Implement not-found page.
+- Implement disabled module state.
+
+Deliverable: Complete navigation.
+
+## Milestone 06 â€” Shared Components
+
+- Cards.
+- Buttons.
+- Badges.
+- Tables.
+- Forms.
+- Modals.
+- Confirmations.
+- Loading.
+- Empty.
+- Error.
+
+Deliverable: Shared component library.
+
+## Milestone 07 â€” API Layer
+
+- Centralized API client.
+- Nonce integration.
+- Error normalization.
+- Request handling.
+- Response validation.
+
+Deliverable: Tested API integration.
+
+## Milestone 08 â€” Module Interfaces
+
+Implement all eleven module interfaces according to the specifications above.
+
+Deliverable: Complete module screen structure.
+
+## Milestone 09 â€” Settings Integration
+
+Connect settings forms to real WordPress REST endpoints.
+
+Deliverable: Functional settings interface.
+
+## Milestone 10 â€” Permission Integration
+
+Verify every protected action and screen.
+
+Deliverable: Permission-aware UI.
+
+## Milestone 11 â€” Responsive and Accessibility
+
+Test desktop, tablet and mobile.
+
+Deliverable: Verified responsive and accessible UI.
+
+## Milestone 12 â€” Testing
+
+Run component, integration, permission, browser and visual regression tests.
+
+Deliverable: Test report.
+
+## Milestone 13 â€” Production Build
+
+Build production assets, inspect generated bundles and validate WordPress asset loading.
+
+Deliverable: Release-ready frontend build.
+
+---
+
+# 31. COMBINED REGRESSION VERIFICATION
+
+After Step 03, rerun the relevant tests from Step 01 and Step 02.
+
+## Step 01
+
+- Product scope.
+- Module boundaries.
+- Hybrid architecture.
+- Security principles.
+- Data ownership.
+- Publishing policy.
+
+## Step 02
+
+- Plugin activation.
+- Composer autoload.
+- Bootstrap.
+- Database installation.
+- Migration.
+- Capabilities.
+- Admin menu.
+- REST authorization.
+- Backend error handling.
+
+## Step 03
+
+- React mount.
+- Navigation.
+- Routing.
+- Design system.
+- Module interfaces.
+- API client.
+- Settings integration.
+- Permissions.
+- Responsive behavior.
+- Accessibility.
+- Frontend security.
+- Browser tests.
+- Production build.
+
+A frontend change must not break the backend authorization model or plugin lifecycle.
+
+---
+
+# 32. FINAL TEST REPORT
+
+Generate:
+
+`docs/STEP-03-TESTING-REPORT.md`
+
+Required report:
+
+```
+BLOGNEXA AI â€” STEP 03 TEST REPORT
+
+Environment:
+WordPress:
+PHP:
+Node:
+Browser:
+Build Tool:
+
+APPLICATION:
+React Mount:
+Admin Layout:
+Sidebar:
+Header:
+Navigation:
+Routing:
+
+MODULES:
+Overview:
+Website Intelligence:
+Knowledge Base:
+Content Strategy:
+SEO Research:
+Blog Studio:
+Image Studio:
+Publishing:
+Analytics:
+Integrations:
+Settings:
+
+API:
+REST Connection:
+Nonce:
+Response Validation:
+Error Handling:
+Settings Integration:
+
+SECURITY:
+Permission-aware UI:
+Server-side Authorization:
+Secret Exposure:
+Unsafe HTML:
+Unauthorized Actions:
+
+QUALITY:
+Responsive:
+Accessibility:
+Browser Console:
+Visual Regression:
+Production Build:
+
+TEST SUMMARY:
+Total:
+Passed:
+Failed:
+Blocked:
+Not Run:
+
+CRITICAL FINDINGS:
+HIGH FINDINGS:
+MEDIUM FINDINGS:
+LOW FINDINGS:
+
+FINAL STATUS:
+PASS / FAIL / BLOCKED
+
+RECOMMENDATION:
+```
+
+All results must come from executed tests.
+
+---
+
+# 33. STEP 03 RELEASE GATE
+
+Step 03 must not be marked complete if:
+
+- The application does not mount reliably.
+- Navigation is broken.
+- Protected actions are not authorized server-side.
+- Settings do not persist correctly.
+- Sensitive data is exposed.
+- Critical pages crash.
+- Frontend build fails.
+- Critical tests fail.
+- Step 01 or Step 02 regressions remain unresolved.
+
+A blocked test must remain BLOCKED.
+
+A visual placeholder must not be described as a functional feature.
+
+---
+
+# 34. NEXT PHASE
+
+After Step 03 is accepted:
+
+**STEP 04 â€” SECURITY FOUNDATION HARDENING & BACKEND CONNECTION**
+
+This phase will implement or deepen:
+
+- Site identity.
+- Secure site registration.
+- Backend authentication.
+- Credential rotation.
+- Signed request validation where appropriate.
+- Tenant isolation.
+- Secure connection lifecycle.
+- Rate limiting.
+- API gateway controls.
+- Backend health checks.
+- Audit and monitoring.
+
+The frontend created in Step 03 will then communicate with the real backend through the approved secure API contracts.
+
+---
+
+# FINAL ENGINEERING DIRECTIVE
+
+Build the admin experience as a real application, not as a collection of static mockup screens.
+
+Every screen must have a clear purpose, every action must have a real contract, every permission must be enforced server-side, and every displayed result must be grounded in actual system data.
+
+Do not claim production readiness because the interface looks complete.
+
+Production readiness requires working integration, security verification, accessibility, responsive testing, regression testing and a documented acceptance report.
+
+## Step 03-à¦à¦° à¦œà¦¨à§à¦¯ à¦†à¦®à¦¾à¦° à¦¬à¦¿à¦¶à§‡à¦· engineering recommendation
+
+à¦¤à§‹à¦®à¦¾à¦° BlogNexa AI-à¦à¦° à¦•à§à¦·à§‡à¦¤à§à¦°à§‡ à¦†à¦®à¦¿ à¦¤à¦¿à¦¨à¦Ÿà¦¿ à¦¬à¦¿à¦·à§Ÿà§‡ à¦¬à§‡à¦¶à¦¿ à¦—à§à¦°à§à¦¤à§à¦¬ à¦¦à§‡à¦¬à¥¤
+
+à§§. Blog Studio-à¦•à§‡ à¦¸à¦¾à¦§à¦¾à¦°à¦£ form à¦¹à¦¿à¦¸à§‡à¦¬à§‡ à¦¤à§ˆà¦°à¦¿ à¦•à¦°à¦¬à§‡ à¦¨à¦¾à¥¤ à¦à¦Ÿà¦¿ à¦¹à¦¬à§‡ à¦à¦•à¦Ÿà¦¿ à¦ªà§‚à¦°à§à¦£ content workspaceà¥¤ Research, Outline, Editor, SEO, Review à¦à¦¬à¦‚ Approvalâ€”à¦¸à¦¬à¦—à§à¦²à§‹ à¦à¦•à¦‡ article lifecycle-à¦à¦° à¦¸à¦™à§à¦—à§‡ à¦¯à§à¦•à§à¦¤ à¦¥à¦¾à¦•à¦¬à§‡à¥¤
+
+à§¨. Sidebar à¦à¦¬à¦‚ route architecture à¦¶à§à¦°à§ à¦¥à§‡à¦•à§‡à¦‡ scalable à¦•à¦°à¦¤à§‡ à¦¹à¦¬à§‡à¥¤ à¦­à¦¬à¦¿à¦·à§à¦¯à¦¤à§‡ à¦¨à¦¤à§à¦¨ module à¦¯à§‹à¦— à¦•à¦°à¦¤à§‡ à¦¯à§‡à¦¨ à¦ªà§à¦°à§‹ React application à¦†à¦¬à¦¾à¦° à¦¤à§ˆà¦°à¦¿ à¦•à¦°à¦¤à§‡ à¦¨à¦¾ à¦¹à§Ÿà¥¤
+
+à§©. Mockup à¦†à¦° functional feature-à¦à¦° à¦®à¦§à§à¦¯à§‡ à¦ªà¦¾à¦°à§à¦¥à¦•à§à¦¯ à¦°à¦¾à¦–à¦¤à§‡ à¦¹à¦¬à§‡à¥¤ UI-à¦¤à§‡ à¦¯à¦¦à¦¿ Website Scan button à¦¥à¦¾à¦•à§‡, à¦•à¦¿à¦¨à§à¦¤à§ backend crawler à¦à¦–à¦¨à§‹ à¦¤à§ˆà¦°à¦¿ à¦¨à¦¾ à¦¹à§Ÿ, à¦¤à¦¾à¦¹à¦²à§‡ button-à¦Ÿà¦¿ à¦¬à¦¾à¦¸à§à¦¤à¦¬ scan à¦¶à§à¦°à§ à¦•à¦°à¦›à§‡ à¦à¦®à¦¨ à¦¦à§‡à¦–à¦¾à¦¨à§‹ à¦¯à¦¾à¦¬à§‡ à¦¨à¦¾à¥¤
+
+## Step 03-à¦à¦° acceptance status
+
+Specification
+
+Prepared
+
+Code implementation
+
+Not verified
+
+Automated UI tests
+
+Not run
+
+Production acceptance
+
+Pending
+
+Step 01 à¦“ Step 02-à¦à¦° à¦®à¦¤à§‹ à¦à¦–à¦¾à¦¨à§‡à¦“ specification à¦¤à§ˆà¦°à¦¿ à¦¹à¦“à§Ÿà¦¾ à¦®à¦¾à¦¨à§‡à¦‡ implementation à¦¸à¦®à§à¦ªà¦¨à§à¦¨ à¦¹à¦“à§Ÿà¦¾ à¦¨à§Ÿà¥¤
+
+à¦ªà¦°à¦¬à¦°à§à¦¤à§€ à¦•à¦¾à¦œ à¦¹à¦¬à§‡ à¦à¦‡ specification Antigravity-à¦¤à§‡ à¦¦à¦¿à§Ÿà§‡ milestone à¦…à¦¨à§à¦¯à¦¾à§Ÿà§€ implementation à¦•à¦°à¦¾à¦¨à§‹ à¦à¦¬à¦‚ `STEP-03-TESTING-REPORT.md` à¦¤à§ˆà¦°à¦¿ à¦•à¦°à¦¾à¦¨à§‹à¥¤
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-11-09T20:10:47+06:00.
+
+The user's current state is as follows:
+Active Document: h:\Rasel\all_local_Projecrt\client-acquisition-os\scripts\verify_ai_service_icp_architect_e2e.js (LANGUAGE_UNSPECIFIED)
+Cursor is on line: 1
+Other open documents:
+- h:\Rasel\all_local_Projecrt\client-acquisition-os\apps\web\lib\extension-pairing-service.ts (LANGUAGE_UNSPECIFIED)
+- c:\Users\MD RASEL ISLAM\AppData\Local\Temp\caos_test_runner\browser_ui_reconciliation_test.js (LANGUAGE_UNSPECIFIED)
+- c:\Users\MD RASEL ISLAM\AppData\Local\Temp\caos_test_runner\test_pure_dom_scroll.js (LANGUAGE_UNSPECIFIED)
+- c:\Users\MD RASEL ISLAM\AppData\Local\Temp\caos_test_runner\test_unlimited_live.js (LANGUAGE_UNSPECIFIED)
+- c:\Users\MD RASEL ISLAM\AppData\Local\Temp\caos_test_runner\full_browser_test.js (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>

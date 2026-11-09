@@ -20,6 +20,12 @@ export interface BootConfig {
   };
 }
 
+declare global {
+  interface Window {
+    blognexaBootConfig?: BootConfig;
+  }
+}
+
 export interface PluginStatus {
   plugin: {
     name: string;

@@ -1,67 +1,73 @@
 import React from 'react';
+import { Header } from './Header';
+import { Sidebar } from './Sidebar';
 
-interface AdminLayoutProps {
+export interface AdminLayoutProps {
   activeModule: string;
   onSelectModule: (id: string) => void;
   siteName: string;
   version: string;
+  userName?: string;
+  connectionStatus?: 'connected' | 'disconnected' | 'connecting';
+  userCapabilities?: Record<string, boolean>;
   children: React.ReactNode;
 }
-
-const MODULE_LIST = [
-  { id: 'overview', name: 'Overview' },
-  { id: 'website-intelligence', name: 'Website Intelligence' },
-  { id: 'knowledge-base', name: 'Knowledge Base' },
-  { id: 'content-strategy', name: 'Content Strategy' },
-  { id: 'seo-research', name: 'SEO Research' },
-  { id: 'blog-studio', name: 'Blog Studio' },
-  { id: 'image-studio', name: 'AI Image Studio' },
-  { id: 'publishing', name: 'Publishing & Scheduling' },
-  { id: 'analytics', name: 'Performance Analytics' },
-  { id: 'integrations', name: 'Integrations' },
-  { id: 'settings', name: 'Settings' },
-];
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
   activeModule,
   onSelectModule,
   siteName,
   version,
+  userName = 'Administrator',
+  connectionStatus = 'disconnected',
+  userCapabilities = {},
   children,
 }) => {
   return (
-    <div className="blognexa-layout">
-      <header className="blognexa-header">
-        <div>
-          <h1>BlogNexa AI — Content Intelligence & Automation</h1>
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-            {siteName} • Foundation v{version}
-          </span>
-        </div>
-        <div>
-          <span className="blognexa-badge blognexa-badge-healthy">System Healthy</span>
-        </div>
-      </header>
+    <div
+      className="bnx-layout"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '80vh',
+        background: 'var(--bnx-color-surface, #ffffff)',
+        fontFamily: 'var(--bnx-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif)',
+      }}
+    >
+      <Header
+        siteName={siteName}
+        version={version}
+        userName={userName}
+        connectionStatus={connectionStatus}
+      />
 
-      <div className="blognexa-body">
-        <aside className="blognexa-sidebar">
-          {MODULE_LIST.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`blognexa-nav-item ${activeModule === item.id ? 'active' : ''}`}
-              onClick={() => onSelectModule(item.id)}
-            >
-              {item.name}
-            </button>
-          ))}
-        </aside>
+      <div
+        className="bnx-shell"
+        style={{
+          display: 'flex',
+          flex: 1,
+          minHeight: '700px',
+        }}
+      >
+        <Sidebar
+          activeModule={activeModule}
+          onSelectModule={onSelectModule}
+          userCapabilities={userCapabilities}
+        />
 
-        <main className="blognexa-content">
+        <main
+          className="bnx-main"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            background: 'var(--bnx-color-surface, #ffffff)',
+          }}
+        >
           {children}
         </main>
       </div>
     </div>
   );
 };
-

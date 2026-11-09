@@ -1,0 +1,72 @@
+/**
+ * BlogNexa AI - Design System Utilities
+ */
+
+/* Flexbox & Grid Utilities */
+.bnx-flex {
+  display: flex;
+}
+
+.bnx-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.bnx-items-center {
+  align-items: center;
+}
+
+.bnx-justify-between {
+  justify-content: space-between;
+}
+
+.bnx-justify-end {
+  justify-content: flex-end;
+}
+
+.bnx-gap-1 { gap: var(--bnx-space-1); }
+.bnx-gap-2 { gap: var(--bnx-space-2); }
+.bnx-gap-3 { gap: var(--bnx-space-3); }
+.bnx-gap-4 { gap: var(--bnx-space-4); }
+.bnx-gap-6 { gap: var(--bnx-space-6); }
+
+/* Spacing Utilities */
+.bnx-mt-1 { margin-top: var(--bnx-space-1); }
+.bnx-mt-2 { margin-top: var(--bnx-space-2); }
+.bnx-mt-3 { margin-top: var(--bnx-space-3); }
+.bnx-mt-4 { margin-top: var(--bnx-space-4); }
+.bnx-mt-6 { margin-top: var(--bnx-space-6); }
+
+.bnx-mb-1 { margin-bottom: var(--bnx-space-1); }
+.bnx-mb-2 { margin-bottom: var(--bnx-space-2); }
+.bnx-mb-3 { margin-bottom: var(--bnx-space-3); }
+.bnx-mb-4 { margin-bottom: var(--bnx-space-4); }
+.bnx-mb-6 { margin-bottom: var(--bnx-space-6); }
+
+/* Text Utilities */
+.bnx-text-sm { font-size: var(--bnx-font-size-sm); }
+.bnx-text-xs { font-size: var(--bnx-font-size-xs); }
+.bnx-text-base { font-size: var(--bnx-font-size-base); }
+.bnx-text-muted { color: var(--bnx-color-text-muted); }
+.bnx-text-secondary { color: var(--bnx-color-text-secondary); }
+.bnx-font-bold { font-weight: 700; }
+.bnx-font-semibold { font-weight: 600; }
+
+/* Grid columns */
+.bnx-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--bnx-space-4);
+}
+
+.bnx-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--bnx-space-4);
+}
+
+@media (max-width: 900px) {
+  .bnx-grid-2, .bnx-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

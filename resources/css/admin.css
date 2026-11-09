@@ -1,109 +1,18 @@
 /**
- * BlogNexa AI - WordPress Admin UI Stylesheet
+ * BlogNexa AI - Main Admin Stylesheet
+ * Integrates Design Tokens, Layout, Components, and Utility Classes
  */
 
-.blognexa-admin-wrap {
-    margin: 20px 20px 0 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+@import './tokens.css';
+@import './layout.css';
+@import './components.css';
+@import './utilities.css';
+
+/* WordPress Admin Specific Overrides */
+#wpbody-content .blognexa-admin-wrap {
+  padding-bottom: 40px;
 }
 
-#blognexa-ai-admin {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-    overflow: hidden;
+#blognexa-ai-admin * {
+  box-sizing: border-box;
 }
-
-.blognexa-layout {
-    display: flex;
-    flex-direction: column;
-    min-height: 80vh;
-}
-
-.blognexa-header {
-    background: #0f172a;
-    color: #ffffff;
-    padding: 16px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.blognexa-header h1 {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0;
-    color: #ffffff;
-}
-
-.blognexa-body {
-    display: flex;
-    flex: 1;
-}
-
-.blognexa-sidebar {
-    width: 240px;
-    background: #f8fafc;
-    border-right: 1px solid #e2e8f0;
-    padding: 16px 0;
-}
-
-.blognexa-nav-item {
-    display: block;
-    width: 100%;
-    padding: 10px 20px;
-    text-align: left;
-    background: none;
-    border: none;
-    font-size: 13px;
-    font-weight: 500;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.15s ease-in-out;
-}
-
-.blognexa-nav-item:hover {
-    background: #e2e8f0;
-    color: #0f172a;
-}
-
-.blognexa-nav-item.active {
-    background: #2563eb;
-    color: #ffffff;
-    font-weight: 600;
-}
-
-.blognexa-content {
-    flex: 1;
-    padding: 32px;
-    background: #ffffff;
-}
-
-.blognexa-card {
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 24px;
-    background: #ffffff;
-    margin-bottom: 24px;
-}
-
-.blognexa-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 9999px;
-    text-transform: uppercase;
-}
-
-.blognexa-badge-healthy {
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.blognexa-badge-empty {
-    background: #f1f5f9;
-    color: #475569;
-}
-

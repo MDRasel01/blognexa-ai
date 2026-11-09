@@ -1,0 +1,73 @@
+/**
+ * BlogNexa AI - Design System Tokens
+ */
+
+:root {
+  /* Colors */
+  --bnx-color-primary: #3b82f6;
+  --bnx-color-primary-hover: #2563eb;
+  --bnx-color-primary-light: #eff6ff;
+
+  --bnx-color-background: #f8fafc;
+  --bnx-color-surface: #ffffff;
+  --bnx-color-surface-subtle: #f1f5f9;
+
+  --bnx-color-text: #0f172a;
+  --bnx-color-text-secondary: #475569;
+  --bnx-color-text-muted: #64748b;
+  --bnx-color-text-inverted: #ffffff;
+
+  --bnx-color-border: #e2e8f0;
+  --bnx-color-border-subtle: #cbd5e1;
+
+  --bnx-color-success: #15803d;
+  --bnx-color-success-bg: #dcfce7;
+  --bnx-color-warning: #b45309;
+  --bnx-color-warning-bg: #fef3c7;
+  --bnx-color-danger: #b91c1c;
+  --bnx-color-danger-bg: #fee2e2;
+  --bnx-color-info: #0369a1;
+  --bnx-color-info-bg: #e0f2fe;
+
+  /* Typography Scale */
+  --bnx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --bnx-font-size-xs: 11px;
+  --bnx-font-size-sm: 12px;
+  --bnx-font-size-base: 13px;
+  --bnx-font-size-md: 14px;
+  --bnx-font-size-lg: 16px;
+  --bnx-font-size-xl: 18px;
+  --bnx-font-size-2xl: 22px;
+  --bnx-font-size-3xl: 26px;
+
+  /* Spacing Scale */
+  --bnx-space-1: 4px;
+  --bnx-space-2: 8px;
+  --bnx-space-3: 12px;
+  --bnx-space-4: 16px;
+  --bnx-space-5: 20px;
+  --bnx-space-6: 24px;
+  --bnx-space-8: 32px;
+  --bnx-space-10: 40px;
+
+  /* Border Radii */
+  --bnx-radius-sm: 4px;
+  --bnx-radius-md: 6px;
+  --bnx-radius-lg: 8px;
+  --bnx-radius-full: 9999px;
+
+  /* Shadows */
+  --bnx-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --bnx-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --bnx-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Transitions */
+  --bnx-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --bnx-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Hierarchy */
+  --bnx-z-dropdown: 1000;
+  --bnx-z-sticky: 1020;
+  --bnx-z-modal: 1050;
+  --bnx-z-toast: 1090;
+}

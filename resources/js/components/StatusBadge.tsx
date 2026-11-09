@@ -54,3 +54,4 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ label, variant = 'empt
     </span>
   );
 };
+

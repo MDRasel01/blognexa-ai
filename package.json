@@ -4,11 +4,9 @@
   "description": "BlogNexa AI WordPress Admin UI - React Application",
   "main": "resources/js/admin/index.tsx",
   "scripts": {
-    "build": "wp-scripts build resources/js/admin/index.tsx --output-path=build",
-    "start": "wp-scripts start resources/js/admin/index.tsx --output-path=build",
-    "lint:js": "wp-scripts lint-js",
-    "lint:css": "wp-scripts lint-style",
-    "test": "wp-scripts test-unit-js"
+    "build": "esbuild resources/js/admin/index.tsx --bundle --minify --sourcemap --outfile=build/index.js --target=es2020 && esbuild resources/css/admin.css --bundle --minify --outfile=build/index.css && node scripts/make-asset.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node tests/ui-tests.js"
   },
   "keywords": [
     "wordpress",
@@ -18,18 +16,12 @@
   ],
   "license": "GPL-2.0-or-later",
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@wordpress/components": "^28.0.0",
-    "@wordpress/element": "^6.0.0",
-    "@wordpress/i18n": "^5.0.0",
-    "@wordpress/icons": "^10.0.0",
-    "@wordpress/scripts": "^27.0.0",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "esbuild": "^0.28.2",
     "lucide-react": "^0.344.0",
-    "typescript": "^5.4.0"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.3"
   }
 }
