@@ -1,0 +1,2631 @@
+<USER_REQUEST>
+# STEP 04 — Security Foundation Hardening & Secure Backend Connection
+
+
+
+Production Security Engineering
+
+Phase 04
+
+
+
+Step 04-তে BlogNexa AI-এর WordPress Plugin এবং Cloud Backend-এর মধ্যে একটি secure, authenticated, tenant-isolated communication system তৈরি করতে হবে।
+
+এটি শুধু API key দিয়ে দুইটি system connect করার কাজ নয়। এখানে authentication, authorization, site identity, credential lifecycle, request signing, replay protection, tenant isolation, rate limiting, audit logging, SSRF protection এবং failure recovery—সবকিছু নির্দিষ্ট security architecture অনুযায়ী বাস্তবায়ন করতে হবে।
+
+এই ধাপের সবচেয়ে গুরুত্বপূর্ণ সিদ্ধান্ত: WordPress Plugin কোনো AI provider-এর secret বা backend master credential browser-এ পাঠাবে না। Plugin-এর server-side PHP code এবং cloud backend-এর মধ্যে communication হবে। React Admin UI শুধু WordPress REST API ব্যবহার করবে।
+
+## Step 04-এর scope
+
+```
+WordPress Admin (React)
+          |
+          v
+WordPress REST API
+          |
+          v
+BlogNexa WordPress Plugin (PHP)
+          |
+          | Authenticated HTTPS
+          v
+BlogNexa Cloud API (FastAPI)
+          |
+          +-- Authentication
+          +-- Authorization
+          +-- Tenant Isolation
+          +-- Rate Limiting
+          +-- Audit Logging
+          +-- Job Management
+          |
+          v
+PostgreSQL / Redis / Background Workers
+```
+
+এই architecture-এ WordPress Plugin হবে একটি trusted site client, আর Cloud Backend হবে tenant-aware central processing system।
+
+## 1. Step 04-এর প্রধান লক্ষ্য
+
+Step 04 শেষ হলে:
+
+1. প্রতিটি WordPress installation-এর একটি unique site identity থাকবে।
+2. Plugin ও backend-এর মধ্যে secure site registration হবে।
+3. Authentication ছাড়া backend-এর protected API ব্যবহার করা যাবে না।
+4. প্রতিটি request-এর integrity ও freshness যাচাই করা হবে।
+5. এক client-এর data অন্য client বা website access করতে পারবে না।
+6. API credentials নিরাপদভাবে সংরক্ষণ, rotate এবং revoke করা যাবে।
+7. Unauthorized request, replay attack, brute force এবং excessive API usage নিয়ন্ত্রণ করা যাবে।
+8. Crawler ও external URL processing-এর মাধ্যমে SSRF ঝুঁকি নিয়ন্ত্রণ করা হবে।
+9. Security-sensitive operations audit log-এ থাকবে।
+10. Connection failure হলে system নিরাপদভাবে recover করতে পারবে।
+
+গুরুত্বপূর্ণ: HMAC signature থাকলেই system secure হয়ে যায় না। HMAC request-এর authenticity ও integrity যাচাই করে; user permission, tenant authorization, resource ownership এবং business rules আলাদাভাবে enforce করতে হবে।
+
+# BLOGNEXA AI
+
+# STEP 04 — SECURITY FOUNDATION HARDENING & SECURE BACKEND CONNECTION
+
+**Document ID:** BNX-ENG-004\
+**Phase:** 04 — Security & Backend Connectivity\
+**Related Documents:** BNX-ENG-001, BNX-ENG-002, BNX-ENG-003\
+**Backend:** Python FastAPI\
+**WordPress Plugin:** PHP\
+**Frontend:** React + TypeScript\
+**Database:** PostgreSQL\
+**Cache / Replay Protection:** Redis\
+**Communication:** HTTPS + HMAC Request Authentication\
+**Architecture:** Hybrid WordPress Plugin + Cloud Backend
+
+**Status:** Engineering Implementation Specification
+
+---
+
+# 1. EXECUTIVE OBJECTIVE
+
+Implement a secure, reliable and tenant-isolated communication architecture between BlogNexa AI WordPress installations and the central cloud backend.
+
+The implementation must establish:
+
+- Unique website identity.
+- Secure site enrollment.
+- Backend authentication.
+- Request integrity verification.
+- Replay attack protection.
+- Credential encryption and rotation.
+- Tenant isolation.
+- Resource-level authorization.
+- API rate limiting.
+- Audit logging.
+- Secure connection lifecycle.
+- SSRF protection.
+- Failure recovery.
+- Security testing.
+
+The system must support multiple WordPress websites connected to the same BlogNexa AI backend without exposing one website's private data to another.
+
+## 1.1 Non-negotiable security principles
+
+1. Never trust client-supplied tenant IDs.
+2. Never expose backend master credentials to WordPress Admin JavaScript.
+3. Never place provider API secrets in browser code.
+4. Never use a nonce as a substitute for authentication.
+5. Never treat HMAC authentication as user authorization.
+6. Never allow an authenticated site to access another site's data.
+7. Never accept unsigned or expired protected requests.
+8. Never log authentication secrets.
+9. Never allow arbitrary internal network access through the crawler.
+10. Never claim security validation passed without executing the relevant tests.
+
+---
+
+# 2. TARGET SECURITY ARCHITECTURE
+
+## 2.1 High-Level Architecture
+
+```
+                  WORDPRESS WEBSITE
+                         |
+                         v
+              WordPress Admin Interface
+                    React + TS
+                         |
+                         v
+                 WordPress REST API
+                         |
+                  Capability Check
+                         |
+                         v
+              BlogNexa Plugin (PHP)
+                         |
+              Credential Management
+                         |
+              Request Authentication
+                         |
+                  HTTPS + HMAC
+                         |
+                         v
+                 BLOGNEXA CLOUD
+                         |
+                 FastAPI Gateway
+                         |
+              Authentication Middleware
+                         |
+              Request Integrity Validation
+                         |
+              Replay Protection
+                         |
+              Tenant Resolution
+                         |
+              Authorization Policies
+                         |
+              Rate Limiting
+                         |
+                  Application API
+                         |
+            +------------+-------------+
+            |            |             |
+            v            v             v
+        PostgreSQL     Redis       Job Workers
+            |
+            v
+       Tenant-Isolated Data
+```
+
+## 2.2 Trust Boundaries
+
+Define the following security boundaries:
+
+| Boundary          | Trust Level                           | Required Controls                                  |
+| ----------------- | ------------------------------------- | -------------------------------------------------- |
+| User's browser    | Untrusted                             | WordPress authentication, nonce, capability checks |
+| WordPress Plugin  | Authenticated client after enrollment | Secure credential storage, signed requests         |
+| Cloud API         | Protected service                     | Authentication, authorization, validation          |
+| Database          | Restricted infrastructure             | Tenant isolation, least privilege                  |
+| Redis             | Restricted infrastructure             | Authentication, network isolation                  |
+| External websites | Untrusted                             | SSRF protection, parsing limits                    |
+| AI providers      | External service                      | Scoped credentials, data minimization              |
+
+A successful authentication at one boundary must not automatically authorize access at another boundary.
+
+---
+
+# 3. SECURITY THREAT MODEL
+
+Before implementation, document the threats the architecture must defend against.
+
+## 3.1 Threat Categories
+
+### A. Credential Theft
+
+Potential attacks:
+
+- Database backup theft.
+- WordPress configuration exposure.
+- Malicious plugin access.
+- Server compromise.
+- Credential leakage in logs.
+- Browser-side secret exposure.
+
+Required defenses:
+
+- Encrypt stored site credentials.
+- Keep encryption keys outside the WordPress database.
+- Use server-side credential access only.
+- Redact logs.
+- Support credential rotation and revocation.
+
+### B. Unauthorized API Access
+
+Potential attacks:
+
+- Requests without credentials.
+- Forged site identifiers.
+- Stolen credentials.
+- Unauthorized API operations.
+
+Required defenses:
+
+- Authentication middleware.
+- Request signature validation.
+- Timestamp validation.
+- Replay protection.
+- Per-operation authorization.
+- Resource ownership checks.
+
+### C. Cross-Tenant Data Access
+
+Potential attacks:
+
+- Manipulating tenant identifiers.
+- Guessing document IDs.
+- Accessing another site's job.
+- Retrieving another site's knowledge chunks.
+- Modifying another site's publishing records.
+
+Required defenses:
+
+- Server-derived tenant identity.
+- Tenant-scoped database queries.
+- Ownership checks.
+- PostgreSQL row-level security where appropriate.
+- Automated cross-tenant tests.
+
+### D. SSRF
+
+Potential attacks:
+
+- Accessing localhost.
+- Accessing private IP ranges.
+- Accessing cloud metadata endpoints.
+- DNS rebinding.
+- Redirecting an allowed URL to an internal IP.
+
+Required defenses:
+
+- URL validation.
+- DNS resolution validation.
+- Private/reserved IP blocking.
+- Redirect revalidation.
+- Egress restrictions.
+- Response size limits.
+
+### E. Replay and Abuse
+
+Potential attacks:
+
+- Reusing a valid signed request.
+- Repeated expensive AI requests.
+- API flooding.
+- Brute-force enrollment attempts.
+
+Required defenses:
+
+- Request timestamp.
+- Unique nonce.
+- Redis replay cache.
+- Rate limiting.
+- Idempotency.
+- Abuse monitoring.
+
+## 3.2 Required Security Deliverable
+
+Create:
+
+`docs/security/THREAT-MODEL.md`
+
+Include:
+
+- Assets.
+- Trust boundaries.
+- Threat actors.
+- Attack scenarios.
+- Attack impact.
+- Mitigations.
+- Residual risks.
+- Security test references.
+
+Use STRIDE as a threat-modeling framework where applicable.
+
+---
+
+# 4. SITE IDENTITY ARCHITECTURE
+
+Every WordPress installation must have a unique identity.
+
+Do not identify a site only by its domain name.
+
+Domains can change, installations can move, and multiple environments can use similar URLs.
+
+## 4.1 Site Identity Fields
+
+Recommended identity:
+
+```
+tenant_id
+site_id
+site_instance_id
+environment
+registered_domain
+registration_status
+created_at
+last_seen_at
+```
+
+Definitions:
+
+- `tenant_id`: Account or organization ownership.
+- `site_id`: Registered website record.
+- `site_instance_id`: Unique WordPress installation identity.
+- `environment`: Production, staging or development.
+- `registered_domain`: Verified canonical site address.
+
+Use UUIDs for internal identifiers.
+
+The backend must create and own the authoritative tenant and site records.
+
+## 4.2 Site Identity Generation
+
+Generate a cryptographically random installation identifier during plugin initialization or activation.
+
+Example:
+
+```
+$site_instance_id = wp_generate_uuid4();
+```
+
+Persist it using a protected WordPress option.
+
+Requirements:
+
+- Generate once.
+- Do not regenerate during normal plugin updates.
+- Do not trust a user-submitted value.
+- Do not use it as a secret.
+- Provide an explicit reset/re-registration process.
+
+A copied staging database may duplicate this identifier. Detect duplicate active installations and require a deliberate staging registration workflow.
+
+---
+
+# 5. SECURE SITE ENROLLMENT
+
+The initial connection process must not expose permanent credentials through URLs or browser storage.
+
+## 5.1 Recommended Enrollment Flow
+
+Use a short-lived, single-use enrollment code.
+
+```
+User Opens BlogNexa Settings
+          |
+          v
+Clicks Connect Website
+          |
+          v
+WordPress Plugin Requests Enrollment
+          |
+          v
+Backend Creates Temporary Enrollment Session
+          |
+          v
+User Completes Account Authorization
+          |
+          v
+Backend Issues Single-Use Enrollment Code
+          |
+          v
+WordPress Plugin Exchanges Code
+          |
+          v
+Backend Verifies Enrollment
+          |
+          v
+Backend Creates Site Registration
+          |
+          v
+Backend Issues Site Credentials
+          |
+          v
+Plugin Encrypts and Stores Credentials
+          |
+          v
+Authenticated Connection Established
+```
+
+## 5.2 Enrollment Code Requirements
+
+The enrollment code must:
+
+- Be generated using a cryptographically secure random generator.
+- Have a short expiration time.
+- Be single-use.
+- Be bound to the intended enrollment session.
+- Be bound to the authorized tenant.
+- Be invalidated after successful exchange.
+- Be stored hashed on the backend.
+- Never appear in application logs.
+- Never be sent to an arbitrary redirect URL.
+
+Suggested initial expiration: 5 minutes.
+
+The final value must be configurable according to security testing.
+
+## 5.3 Enrollment Endpoint Contract
+
+Example:
+
+`POST /v1/enrollment/sessions`
+
+Purpose:
+
+Create an enrollment session.
+
+The backend must verify the account's authorization before issuing a usable enrollment session.
+
+Example response:
+
+```
+{
+  "enrollment_id": "uuid",
+  "authorization_url": "https://app.example.com/authorize/...",
+  "expires_at": "2026-11-09T16:00:00Z"
+}
+```
+
+The authorization URL must be generated by the backend and use an approved destination.
+
+After authorization:
+
+`POST /v1/enrollment/exchange`
+
+Example request:
+
+```
+{
+  "enrollment_code": "single-use-code",
+  "site_instance_id": "uuid",
+  "site_url": "https://example.com",
+  "environment": "production"
+}
+```
+
+The backend must verify the enrollment code and authorization context.
+
+Example response:
+
+```
+{
+  "site_id": "uuid",
+  "tenant_id": "uuid",
+  "credential_id": "uuid",
+  "key_version": 1,
+  "site_secret": "one-time-secret",
+  "status": "connected"
+}
+```
+
+This is a conceptual contract. Final field names and response schemas must be reviewed against the actual implementation.
+
+The secret is returned once over HTTPS and must never be returned by normal status endpoints.
+
+## 5.4 Enrollment Abuse Protection
+
+Implement:
+
+- Rate limits.
+- Expiration.
+- Single-use verification.
+- Attempt counters.
+- Account-level authorization.
+- Security event logging.
+- Enrollment revocation.
+
+---
+
+# 6. CREDENTIAL STORAGE AND ENCRYPTION
+
+Credential security is critical because a stolen site credential could allow an attacker to impersonate a registered website.
+
+## 6.1 WordPress Storage
+
+The WordPress Plugin may store:
+
+- Site ID.
+- Tenant ID.
+- Credential ID.
+- Key version.
+- Encrypted site secret.
+- Connection status.
+- Last successful connection.
+
+Do not store the secret as plaintext in the WordPress options table.
+
+## 6.2 Encryption Strategy
+
+Use authenticated encryption such as libsodium secretbox or another reviewed authenticated encryption mechanism.
+
+The encryption key must not be stored alongside the encrypted database value.
+
+Recommended deployment configuration:
+
+```
+BLOGNEXA_CREDENTIAL_ENCRYPTION_KEY
+```
+
+Place the encryption key in protected server configuration, preferably `wp-config.php` or an equivalent secret-management mechanism.
+
+Requirements:
+
+- Validate key length and format.
+- Fail closed when the encryption key is unavailable.
+- Never silently fall back to plaintext.
+- Use a unique random nonce for each encryption operation.
+- Store ciphertext and nonce together in a versioned format.
+- Support key rotation.
+- Do not include encryption keys in diagnostic reports.
+
+Example storage structure:
+
+```
+{
+  "version": 1,
+  "algorithm": "secretbox",
+  "nonce": "base64-value",
+  "ciphertext": "base64-value"
+}
+```
+
+This is a conceptual storage format, not a requirement to use JSON in the database.
+
+## 6.3 Shared Hosting Considerations
+
+On shared hosting, the encryption key in `wp-config.php` is still accessible to PHP and may be exposed if the server itself is compromised.
+
+Encryption protects database exports and backups from some forms of offline credential theft. It does not protect credentials from a fully compromised WordPress server.
+
+Document this limitation.
+
+## 6.4 Backend Secret Storage
+
+The backend must:
+
+- Encrypt site secrets at rest.
+- Use a managed KMS or equivalent key-management service where available.
+- Restrict access to credential-decryption operations.
+- Separate application secrets from tenant data.
+- Record key versions.
+- Support credential revocation.
+- Avoid exposing secrets in database query logs.
+
+Never use a hardcoded production master encryption key in source code.
+
+---
+
+# 7. AUTHENTICATED API REQUESTS
+
+Use HTTPS for all communication.
+
+For site-to-backend authentication, implement HMAC-SHA256 request signing with a per-site secret.
+
+HMAC is an authentication and integrity mechanism. It is not encryption. HTTPS remains mandatory.
+
+## 7.1 Request Headers
+
+Recommended headers:
+
+```
+Authorization: BNX-HMAC credential_id="uuid", signature="hex"
+X-BNX-Timestamp: 1794240000
+X-BNX-Nonce: random-unique-value
+X-BNX-Key-Version: 1
+X-BNX-Request-ID: uuid
+X-BNX-Content-SHA256: hex-digest
+Content-Type: application/json
+```
+
+The exact authorization header syntax must be standardized and implemented identically in PHP and Python.
+
+## 7.2 Canonical Request
+
+Both systems must sign the same canonical representation.
+
+Recommended structure:
+
+```
+HTTP_METHOD
+CANONICAL_PATH
+CANONICAL_QUERY
+TIMESTAMP
+NONCE
+KEY_VERSION
+REQUEST_ID
+BODY_SHA256
+```
+
+Example:
+
+```
+POST
+/v1/site/status
+environment=production
+1794240000
+unique-nonce
+1
+request-uuid
+body-sha256
+```
+
+Rules:
+
+- Normalize the HTTP method.
+- Use the exact canonical route path.
+- Sort query parameters deterministically.
+- Define percent-encoding rules.
+- Define treatment of empty query values.
+- Hash the exact transmitted request body bytes.
+- Avoid signing a reserialized JSON body.
+- Reject malformed canonical requests.
+
+Both PHP and Python implementations must have shared test vectors.
+
+## 7.3 Signature Generation
+
+Conceptual PHP example:
+
+```
+$body_hash = hash('sha256', $body);
+
+$canonical = implode("\n", [
+    strtoupper($method),
+    $path,
+    $canonical_query,
+    (string) $timestamp,
+    $nonce,
+    (string) $key_version,
+    $request_id,
+    $body_hash,
+]);
+
+$signature = hash_hmac(
+    'sha256',
+    $canonical,
+    $site_secret
+);
+```
+
+The production implementation must use the exact canonicalization specification and ensure `$body` is the same byte sequence transmitted.
+
+## 7.4 Backend Verification
+
+FastAPI middleware or a dedicated authentication dependency must:
+
+1. Parse authentication headers.
+2. Validate required fields.
+3. Locate the credential record.
+4. Check credential status.
+5. Check key version.
+6. Validate timestamp.
+7. Validate nonce format.
+8. Calculate the request body hash.
+9. Reconstruct the canonical request.
+10. Calculate the expected signature.
+11. Compare signatures using a constant-time comparison function.
+12. Atomically register the nonce.
+13. Resolve the site and tenant from the authenticated credential.
+14. Attach the authenticated principal to the request context.
+
+Reject invalid requests before executing protected business logic.
+
+## 7.5 Timestamp Window
+
+Suggested initial tolerance:
+
+5 minutes.
+
+The value must be configurable and tested against realistic hosting clock drift.
+
+Servers must use synchronized time.
+
+Do not rely on timestamps alone for replay protection.
+
+## 7.6 Constant-Time Comparison
+
+Use an appropriate constant-time comparison function.
+
+Python example:
+
+```
+import hmac
+
+is_valid = hmac.compare_digest(
+    expected_signature,
+    received_signature
+)
+```
+
+Never use ordinary string equality as the security comparison for the signature.
+
+---
+
+# 8. REPLAY ATTACK PROTECTION
+
+A valid request must not be reusable indefinitely.
+
+## 8.1 Redis Nonce Storage
+
+Use a Redis key similar to:
+
+```
+bnx:replay:{credential_id}:{nonce}
+```
+
+Store it with an atomic operation equivalent to:
+
+```
+SET key value NX EX ttl
+```
+
+If the key already exists, reject the request.
+
+The nonce registration must be atomic.
+
+## 8.2 Replay Rules
+
+Reject requests when:
+
+- Timestamp is outside the allowed window.
+- Nonce already exists.
+- Nonce format is invalid.
+- Signature does not match.
+- Credential is revoked.
+- Key version is unsupported.
+
+If Redis is unavailable, protected write operations must fail closed rather than silently disabling replay protection.
+
+A documented availability strategy may be introduced later, but it must not bypass replay validation.
+
+## 8.3 Idempotency
+
+Replay protection and idempotency solve different problems.
+
+- Replay protection blocks reuse of the same signed request.
+- Idempotency prevents duplicate business operations when legitimate retries occur.
+
+For important write operations, support:
+
+`Idempotency-Key`
+
+Store:
+
+- Key.
+- Credential ID.
+- Route.
+- Request body hash.
+- Processing status.
+- Original response reference.
+- Expiration.
+
+Reusing the same key with a different request body must be rejected.
+
+Publishing, job creation and other non-repeatable operations require explicit idempotency behavior.
+
+---
+
+# 9. TENANT ISOLATION
+
+This is one of the most important requirements of BlogNexa AI.
+
+A single backend may serve hundreds or thousands of WordPress websites.
+
+Each site's data must remain isolated.
+
+## 9.1 Tenant Resolution
+
+Never accept `tenant_id` as an authoritative value from:
+
+- React state.
+- Request body.
+- Query parameters.
+- Custom headers.
+- URL path supplied by the user.
+
+Resolve tenant identity from the authenticated credential record.
+
+Example:
+
+```
+Authenticated Credential
+          |
+          v
+Registered Site
+          |
+          v
+Tenant Membership
+          |
+          v
+Trusted Request Context
+```
+
+The request context should contain:
+
+```
+authenticated_credential_id
+authenticated_site_id
+authenticated_tenant_id
+authenticated_permissions
+```
+
+## 9.2 Database Schema Requirements
+
+Every tenant-owned table must include the appropriate ownership fields.
+
+Examples:
+
+```
+tenants
+sites
+site_credentials
+knowledge_documents
+knowledge_chunks
+research_jobs
+articles
+publications
+integrations
+audit_events
+usage_records
+```
+
+Recommended ownership fields:
+
+```
+tenant_id
+site_id
+created_at
+updated_at
+```
+
+Not every table requires both `tenant_id` and `site_id`, but the ownership model must be explicit.
+
+## 9.3 Tenant-Scoped Query Rules
+
+Every database operation must be scoped to the authenticated tenant and, where required, the authenticated site.
+
+Conceptual query:
+
+```
+SELECT *
+FROM knowledge_documents
+WHERE tenant_id = :authenticated_tenant_id
+  AND site_id = :authenticated_site_id;
+```
+
+Never trust an unverified identifier supplied by the frontend.
+
+## 9.4 PostgreSQL Row-Level Security
+
+Use PostgreSQL Row-Level Security where it materially improves defense in depth.
+
+Requirements:
+
+- Define policies for tenant-owned tables.
+- Set tenant context safely within the transaction.
+- Use transaction-local settings where appropriate.
+- Ensure connection pooling cannot leak tenant context.
+- Avoid application roles that bypass RLS.
+- Test all access paths.
+
+RLS must complement—not replace—application-level authorization.
+
+## 9.5 RAG Isolation
+
+The knowledge retrieval layer must filter by tenant and site before returning candidate chunks.
+
+Required retrieval scope:
+
+```
+tenant_id = authenticated tenant
+site_id = authenticated site
+document_status = eligible
+```
+
+Never perform unrestricted vector retrieval and then filter results only in the frontend.
+
+Cross-tenant RAG leakage is a critical security failure.
+
+## 9.6 Cross-Tenant Test
+
+Create at least two test tenants:
+
+```
+Tenant A
+  Site A1
+  Site A2
+
+Tenant B
+  Site B1
+```
+
+Verify:
+
+- A1 cannot access B1 documents.
+- A2 cannot access B1 jobs.
+- B1 cannot access A1 publications.
+- Tenant A cannot retrieve Tenant B embeddings.
+- Forged tenant IDs do not change access.
+- Revoked credentials cannot access any protected tenant resource.
+
+---
+
+# 10. AUTHORIZATION ARCHITECTURE
+
+Authentication answers:
+
+"Who is making this request?"
+
+Authorization answers:
+
+"What is this authenticated principal allowed to do?"
+
+These must remain separate.
+
+## 10.1 Backend Permission Model
+
+Create explicit permission scopes.
+
+Example:
+
+```
+site:read
+site:manage
+knowledge:read
+knowledge:write
+research:read
+research:write
+content:read
+content:write
+publishing:approve
+publishing:execute
+integrations:manage
+analytics:read
+billing:read
+```
+
+The actual permissions must be approved against the product's business rules.
+
+## 10.2 Site-Level Permissions
+
+The backend must determine whether a registered site is allowed to perform a requested operation.
+
+For example:
+
+- A site may read its own status.
+- A site may submit an approved scan job.
+- A site may retrieve its own research results.
+- A site may publish only through the approved publishing policy.
+
+A WordPress user being an Administrator does not automatically grant access to every backend tenant operation.
+
+## 10.3 WordPress Capability Enforcement
+
+Continue using the Step 01 capability architecture.
+
+Examples:
+
+```
+current_user_can('blognexa_manage_settings');
+current_user_can('blognexa_scan_website');
+current_user_can('blognexa_publish_blog');
+```
+
+Every protected WordPress REST route must:
+
+- Define a permission callback.
+- Check the relevant capability.
+- Validate resource ownership.
+- Validate request parameters.
+- Return a consistent error response.
+
+A REST nonce is a CSRF defense for authenticated cookie-based requests. It is not a replacement for WordPress capability checks or site-to-backend authentication.
+
+---
+
+# 11. CREDENTIAL ROTATION AND REVOCATION
+
+Credentials must have a complete lifecycle.
+
+## 11.1 Rotation Strategy
+
+Use a staged rotation process.
+
+```
+Current Key Version: 1
+          |
+          v
+Backend Creates Key Version 2
+          |
+          v
+New Credential Delivered Securely
+          |
+          v
+Plugin Stores New Credential
+          |
+          v
+Plugin Verifies New Credential
+          |
+          v
+Backend Marks Version 2 Active
+          |
+          v
+Old Version 1 Revoked
+```
+
+The backend may temporarily accept both versions during a controlled transition.
+
+Do not accept old keys indefinitely.
+
+## 11.2 Rotation Requirements
+
+- Every key has a version.
+- Every credential has a status.
+- Every rotation has an audit record.
+- Rotation is authenticated.
+- New credentials are verified before old credentials are revoked.
+- Failed rotation has a recovery procedure.
+- Compromised credentials can be revoked immediately.
+
+## 11.3 Revocation
+
+Support:
+
+- Manual disconnect.
+- Administrator-initiated revocation.
+- Backend-initiated revocation.
+- Credential compromise response.
+- Site deletion.
+- Account suspension.
+
+A revoked credential must stop working immediately or within a documented, tightly bounded cache invalidation window.
+
+---
+
+# 12. RATE LIMITING AND ABUSE PROTECTION
+
+Rate limits must apply at multiple levels.
+
+## 12.1 Rate-Limit Dimensions
+
+- IP address.
+- Credential ID.
+- Site ID.
+- Tenant ID.
+- Endpoint.
+- Operation type.
+- Expensive AI task.
+- Enrollment session.
+
+## 12.2 Different Operation Classes
+
+Example:
+
+| Operation          | Risk        | Suggested Control                    |
+| ------------------ | ----------- | ------------------------------------ |
+| Read site status   | Low         | Moderate rate limit                  |
+| Read settings      | Low         | Moderate rate limit                  |
+| Website scan       | High cost   | Job quota                            |
+| SEO research       | High cost   | Usage quota                          |
+| Article generation | High cost   | Token and job limits                 |
+| Image generation   | High cost   | Provider quota                       |
+| Publishing         | High impact | Strict authorization and idempotency |
+
+Do not apply a single global rate limit to all operations.
+
+## 12.3 Response Behavior
+
+Return a consistent response:
+
+```
+{
+  "code": "RATE_LIMITED",
+  "message": "Request limit exceeded.",
+  "retry_after": 30
+}
+```
+
+Include an appropriate HTTP status and `Retry-After` header.
+
+Never reveal internal rate-limit implementation details.
+
+## 12.4 Quotas
+
+The future SaaS billing system will need:
+
+- Tenant usage limits.
+- Per-site usage.
+- Per-operation quotas.
+- AI token consumption.
+- Image generation usage.
+- Research job limits.
+
+Step 04 must establish the enforcement foundation without implementing an unapproved billing system.
+
+---
+
+# 13. SSRF PROTECTION AND CRAWLER SECURITY
+
+BlogNexa AI reads external website content. This introduces a serious SSRF risk.
+
+The crawler must never become a proxy into internal infrastructure.
+
+## 13.1 Blocked Destinations
+
+Reject requests targeting:
+
+- `localhost`.
+- Loopback addresses.
+- Private IPv4 ranges.
+- Private IPv6 ranges.
+- Link-local addresses.
+- Multicast and reserved ranges.
+- Cloud metadata endpoints.
+- Internal infrastructure hostnames.
+- Unapproved protocols.
+
+Also block IPv4-mapped IPv6 forms and alternative IP representations.
+
+## 13.2 DNS Rebinding Defense
+
+A hostname may resolve to a public IP during validation and an internal IP during connection.
+
+Required controls:
+
+1. Resolve the hostname.
+2. Validate all resolved IP addresses.
+3. Reject prohibited destinations.
+4. Connect only to an approved resolved destination.
+5. Ensure the HTTP client cannot silently re-resolve to an unapproved destination.
+6. Validate every redirect target again.
+
+Implement the network controls in the backend infrastructure where possible.
+
+## 13.3 Redirect Rules
+
+- Set a strict redirect limit.
+- Revalidate every redirect.
+- Block redirects to prohibited networks.
+- Do not forward sensitive authorization headers to a different host.
+- Reject unsupported protocols.
+
+## 13.4 Response Limits
+
+Apply:
+
+- Connection timeout.
+- Read timeout.
+- Maximum response size.
+- Maximum decompressed size.
+- Maximum redirects.
+- Allowed content types.
+- Maximum processing time.
+- Concurrency limits.
+
+Protect against oversized compressed responses and decompression bombs.
+
+## 13.5 Content Parsing
+
+- Do not execute downloaded JavaScript.
+- Do not execute downloaded PHP.
+- Do not treat website content as trusted instructions.
+- Keep retrieved page content separate from system instructions.
+- Defend AI/RAG workflows against prompt injection.
+- Preserve source attribution.
+
+## 13.6 Network-Level Defense
+
+Where possible, run crawling workers with restricted outbound network access.
+
+Application-level URL checks are necessary but not sufficient by themselves.
+
+---
+
+# 14. SECURE WORDPRESS REST API
+
+All privileged WordPress routes must follow the approved security model.
+
+## 14.1 Route Registration
+
+Every route must define:
+
+- HTTP method.
+- Route schema.
+- Permission callback.
+- Parameter validation.
+- Sanitization.
+- Response schema.
+- Error handling.
+
+## 14.2 Example Permission Callback
+
+```
+public function can_manage_settings() {
+    return current_user_can('blognexa_manage_settings');
+}
+```
+
+## 14.3 Input Validation
+
+Use strict validation for:
+
+- UUIDs.
+- URLs.
+- Enum values.
+- Integer limits.
+- Pagination.
+- Search parameters.
+- Status transitions.
+- Resource identifiers.
+
+Never rely on the React frontend for validation.
+
+## 14.4 Output Handling
+
+- Escape data in the appropriate output context.
+- Avoid unsafe HTML injection.
+- Sanitize user-provided text.
+- Do not expose credentials in REST responses.
+- Do not expose internal stack traces.
+
+---
+
+# 15. BACKEND API SECURITY MIDDLEWARE
+
+Create dedicated middleware/dependencies.
+
+Suggested structure:
+
+```
+backend/
+│
+├── app/
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── security.py
+│   │   ├── hmac_auth.py
+│   │   ├── replay_protection.py
+│   │   ├── rate_limiter.py
+│   │   └── tenant_context.py
+│   │
+│   ├── middleware/
+│   │   ├── request_id.py
+│   │   ├── authentication.py
+│   │   ├── tenant_resolution.py
+│   │   └── audit.py
+│   │
+│   ├── policies/
+│   │   ├── site_policy.py
+│   │   ├── content_policy.py
+│   │   └── publishing_policy.py
+│   │
+│   ├── modules/
+│   │   ├── enrollment/
+│   │   ├── credentials/
+│   │   ├── sites/
+│   │   ├── health/
+│   │   └── security_events/
+│   │
+│   └── api/
+│       └── v1/
+│
+└── tests/
+    ├── security/
+    ├── integration/
+    └── tenant_isolation/
+```
+
+## 15.1 Middleware Order
+
+Recommended logical execution order:
+
+1. Request ID creation.
+2. Basic request size and format checks.
+3. Authentication header parsing.
+4. Credential lookup.
+5. Timestamp and signature validation.
+6. Replay protection.
+7. Authenticated site resolution.
+8. Tenant resolution.
+9. Authorization policy.
+10. Rate limiting and quota checks.
+11. Application handler.
+12. Audit event recording.
+
+The final implementation must handle denial and failure logging consistently.
+
+---
+
+# 16. BACKEND CONNECTION CLIENT IN WORDPRESS
+
+Create a dedicated server-side client.
+
+Suggested structure:
+
+```
+includes/
+└── Backend/
+    ├── BackendClientInterface.php
+    ├── HttpBackendClient.php
+    ├── RequestSigner.php
+    ├── CredentialManager.php
+    ├── ConnectionManager.php
+    ├── EnrollmentManager.php
+    ├── CredentialEncryption.php
+    ├── ResponseValidator.php
+    └── BackendException.php
+```
+
+## 16.1 Client Responsibilities
+
+- Build requests.
+- Sign requests.
+- Add authentication headers.
+- Enforce HTTPS.
+- Validate responses.
+- Handle timeouts.
+- Handle network failures.
+- Handle authentication errors.
+- Support idempotency.
+- Redact sensitive data from logs.
+
+Use the WordPress HTTP API where practical.
+
+Do not create an independent low-level networking implementation without a clear technical reason.
+
+## 16.2 Timeout Policy
+
+Different operations require different timeouts.
+
+Short synchronous requests:
+
+- Status.
+- Connection verification.
+- Settings retrieval.
+
+Long-running tasks:
+
+- Website crawling.
+- Research.
+- Article generation.
+- Image generation.
+
+Long-running operations must use asynchronous jobs rather than holding a PHP request open for extended periods.
+
+## 16.3 Backend Failure Behavior
+
+The plugin must distinguish:
+
+- DNS failure.
+- TLS failure.
+- Connection timeout.
+- Authentication failure.
+- Credential revoked.
+- Backend unavailable.
+- Rate limited.
+- Invalid response.
+- Backend maintenance.
+
+Do not retry permanent authentication or validation failures automatically.
+
+Use bounded retries with exponential backoff and jitter for appropriate transient failures.
+
+---
+
+# 17. CONNECTION LIFECYCLE
+
+Create a clear state machine.
+
+```
+DISCONNECTED
+      |
+      v
+ENROLLMENT_PENDING
+      |
+      v
+AUTHENTICATING
+      |
+      v
+CONNECTED
+      |
+      +------> DEGRADED
+      |            |
+      |            v
+      |         RETRYING
+      |            |
+      +------------+
+      |
+      v
+REVOKED
+      |
+      v
+DISCONNECTED
+```
+
+Additional states may be introduced if necessary.
+
+## 17.1 State Definitions
+
+| State              | Meaning                            |
+| ------------------ | ---------------------------------- |
+| Disconnected       | No active site credentials         |
+| Enrollment Pending | User authorization is pending      |
+| Authenticating     | Credentials are being verified     |
+| Connected          | Authenticated connection verified  |
+| Degraded           | Temporary communication problem    |
+| Retrying           | Controlled recovery is in progress |
+| Revoked            | Backend has revoked the credential |
+
+Do not represent a site as connected simply because credentials exist locally.
+
+A successful verification request must establish the connected state.
+
+## 17.2 Health Check
+
+Create:
+
+`GET /v1/site/status`
+
+It must return only safe status information.
+
+Example:
+
+```
+{
+  "status": "connected",
+  "site_id": "uuid",
+  "backend_version": "1.0.0",
+  "last_verified_at": "2026-11-09T16:00:00Z",
+  "capabilities": [
+    "site:read",
+    "knowledge:read"
+  ]
+}
+```
+
+Never return the site secret or internal credential material.
+
+---
+
+# 18. AUDIT LOGGING AND SECURITY MONITORING
+
+Security-sensitive actions must be recorded.
+
+## 18.1 Required Audit Events
+
+- Site enrolled.
+- Enrollment failed.
+- Credential created.
+- Credential rotated.
+- Credential revoked.
+- Authentication failed.
+- Replay detected.
+- Permission denied.
+- Cross-tenant access attempt.
+- Rate limit exceeded.
+- Site disconnected.
+- Data deletion requested.
+- Publishing permission changed.
+
+## 18.2 Audit Record Structure
+
+```
+id
+tenant_id
+site_id
+actor_type
+actor_id
+event_type
+resource_type
+resource_id
+request_id
+ip_address
+user_agent
+result
+created_at
+```
+
+Only collect data that is necessary for security and operational purposes.
+
+## 18.3 Log Redaction
+
+Never log:
+
+- Site secrets.
+- API keys.
+- Enrollment codes.
+- Authorization headers.
+- Full signed requests containing sensitive material.
+- Private AI provider credentials.
+
+Use structured logs and controlled retention.
+
+Security events should be monitored for abnormal patterns.
+
+---
+
+# 19. ERROR RESPONSE STANDARD
+
+Use a consistent API error structure.
+
+Example:
+
+```
+{
+  "error": {
+    "code": "INVALID_SIGNATURE",
+    "message": "The request could not be authenticated.",
+    "request_id": "uuid"
+  }
+}
+```
+
+Recommended error codes:
+
+```
+INVALID_AUTHENTICATION
+INVALID_SIGNATURE
+EXPIRED_REQUEST
+REPLAY_DETECTED
+CREDENTIAL_REVOKED
+INVALID_CREDENTIAL_VERSION
+ENROLLMENT_EXPIRED
+ENROLLMENT_ALREADY_USED
+PERMISSION_DENIED
+TENANT_ACCESS_DENIED
+RATE_LIMITED
+SITE_NOT_FOUND
+BACKEND_UNAVAILABLE
+INVALID_REQUEST
+INTERNAL_ERROR
+```
+
+Do not reveal whether a particular secret or credential identifier exists when doing so would facilitate credential enumeration.
+
+---
+
+# 20. DATABASE MIGRATIONS
+
+Create versioned backend migrations.
+
+Recommended initial tables:
+
+```
+tenants
+sites
+site_credentials
+enrollment_sessions
+security_events
+audit_events
+idempotency_records
+rate_limit_records
+```
+
+The actual rate-limit implementation may use Redis rather than PostgreSQL.
+
+## 20.1 Important Constraints
+
+- UUID primary keys.
+- Foreign keys.
+- Unique credential identifiers.
+- Credential version tracking.
+- Indexed tenant and site fields.
+- Indexed credential status.
+- Expiration indexes.
+- Appropriate cascade and deletion policies.
+- Encryption for sensitive credential material.
+
+Never rely on application code alone to prevent duplicate credential identifiers.
+
+## 20.2 Migration Safety
+
+- Migrations must be versioned.
+- Production schema changes must be reviewed.
+- Destructive migrations require explicit approval.
+- Rollback strategy must be documented.
+- Backups must exist before risky migration.
+- Restore procedures must be tested.
+
+---
+
+# 21. TESTING AND SECURITY VERIFICATION
+
+Testing must be executed against a controlled environment.
+
+## 21.1 Enrollment Tests
+
+- Valid enrollment.
+- Expired enrollment.
+- Reused enrollment code.
+- Invalid enrollment code.
+- Unauthorized account.
+- Duplicate site registration.
+- Staging/production identity collision.
+- Enrollment rate limiting.
+
+## 21.2 Authentication Tests
+
+- Valid HMAC signature.
+- Invalid signature.
+- Missing headers.
+- Invalid timestamp.
+- Expired request.
+- Invalid nonce.
+- Replayed nonce.
+- Revoked credential.
+- Unknown credential.
+- Incorrect key version.
+- Tampered request body.
+- Tampered query string.
+- Malformed canonical request.
+
+## 21.3 Tenant Isolation Tests
+
+- Cross-tenant document access.
+- Cross-tenant article access.
+- Cross-tenant job access.
+- Cross-tenant vector search.
+- Forged tenant ID.
+- Forged site ID.
+- Unauthorized resource update.
+- Connection-pool tenant context leakage.
+
+Any successful unauthorized cross-tenant read or write is a critical failure.
+
+## 21.4 Credential Tests
+
+- Secret encrypted before storage.
+- Plaintext secret not present in database.
+- Secret not exposed in API response.
+- Secret not exposed in logs.
+- Wrong encryption key fails safely.
+- Key rotation works.
+- Revocation works.
+- Recovery from failed rotation works.
+
+## 21.5 SSRF Tests
+
+Test:
+
+- Localhost URLs.
+- Private IPv4.
+- Private IPv6.
+- Link-local IP.
+- Cloud metadata destinations.
+- DNS rebinding simulation.
+- Public-to-private redirect.
+- Redirect chain.
+- Oversized response.
+- Unsupported protocol.
+- Compressed response abuse.
+- Redirect limit bypass.
+
+Use controlled test infrastructure. Do not probe third-party production systems.
+
+## 21.6 Rate-Limit Tests
+
+- Credential-level limit.
+- Tenant-level limit.
+- Expensive job limit.
+- Enrollment abuse.
+- Burst traffic.
+- Retry behavior.
+- Redis unavailable.
+- Correct Retry-After response.
+
+## 21.7 WordPress Security Tests
+
+- REST route without nonce where nonce is required.
+- User without capability.
+- Forged resource ID.
+- Invalid parameter types.
+- Invalid URLs.
+- XSS payloads.
+- CSRF-sensitive actions.
+- Unauthorized disconnect.
+- Secret leakage in rendered HTML.
+
+## 21.8 Automated Tools
+
+Use suitable tools based on the actual codebase:
+
+**PHP**
+
+- PHPUnit.
+- WordPress integration testing.
+- PHPStan.
+- PHPCS with WordPress Coding Standards.
+
+**Python**
+
+- Pytest.
+- FastAPI TestClient.
+- Ruff.
+- Mypy where configured.
+
+**Security**
+
+- OWASP ZAP in a controlled environment.
+- Dependency vulnerability scanning.
+- Static analysis.
+- Secret scanning.
+- Container image scanning where containers are used.
+
+Security tools do not replace manual threat analysis.
+
+---
+
+# 22. CI/CD SECURITY GATES
+
+Integrate security checks into the development pipeline.
+
+Required gates:
+
+1. PHP lint.
+2. PHP unit tests.
+3. WordPress coding standards.
+4. Python lint.
+5. Python unit tests.
+6. TypeScript type checking.
+7. Frontend build.
+8. API integration tests.
+9. Authentication tests.
+10. Tenant isolation tests.
+11. Dependency vulnerability checks.
+12. Secret scanning.
+13. Migration validation.
+
+A critical security test failure must block release.
+
+Do not ignore or suppress security scanner findings merely to obtain a green pipeline.
+
+---
+
+# 23. REQUIRED DOCUMENTATION
+
+Generate these documents:
+
+```
+docs/
+│
+└── security/
+    ├── THREAT-MODEL.md
+    ├── TRUST-BOUNDARIES.md
+    ├── AUTHENTICATION-PROTOCOL.md
+    ├── ENROLLMENT-FLOW.md
+    ├── CREDENTIAL-LIFECYCLE.md
+    ├── TENANT-ISOLATION.md
+    ├── SSRF-DEFENSE.md
+    ├── SECURITY-OPERATIONS.md
+    ├── INCIDENT-RESPONSE.md
+    ├── DATA-RETENTION.md
+    └── SECURITY-TEST-REPORT.md
+```
+
+Documentation must describe actual implementation, not only proposed behavior.
+
+---
+
+# 24. ANTIGRAVITY IMPLEMENTATION MILESTONES
+
+Follow this implementation order.
+
+## MILESTONE 01 — Repository and Security Audit
+
+Tasks:
+
+- Read Step 01.
+- Read Step 02.
+- Read Step 03.
+- Inspect plugin repository.
+- Inspect FastAPI backend.
+- Inspect current authentication.
+- Inspect database models.
+- Inspect REST routes.
+- Inspect existing tests.
+- Identify missing security controls.
+
+Deliverable:
+
+`docs/security/STEP-04-INITIAL-AUDIT.md`
+
+Do not begin replacing existing authentication without first understanding the current implementation.
+
+## MILESTONE 02 — Threat Model
+
+Tasks:
+
+- Identify assets.
+- Identify trust boundaries.
+- Identify attack scenarios.
+- Classify risks.
+- Map mitigations.
+- Define critical release blockers.
+
+Deliverable:
+
+`docs/security/THREAT-MODEL.md`
+
+## MILESTONE 03 — Site Identity
+
+Tasks:
+
+- Generate installation ID.
+- Persist installation identity.
+- Add backend site records.
+- Define site ownership.
+- Define environment identity.
+- Handle staging clones.
+
+Deliverable:
+
+Working site identity model.
+
+## MILESTONE 04 — Secure Enrollment
+
+Tasks:
+
+- Build enrollment session.
+- Implement authorization.
+- Generate single-use code.
+- Exchange enrollment code.
+- Create site credential.
+- Store credential securely.
+- Verify successful connection.
+
+Deliverable:
+
+Working enrollment flow.
+
+## MILESTONE 05 — Credential Encryption
+
+Tasks:
+
+- Implement WordPress-side encryption.
+- Implement secure key configuration.
+- Implement backend secret storage.
+- Add versioned encryption format.
+- Add credential rotation foundation.
+- Add redaction.
+
+Deliverable:
+
+Verified credential storage.
+
+## MILESTONE 06 — HMAC Authentication
+
+Tasks:
+
+- Define canonical request protocol.
+- Implement PHP signer.
+- Implement Python verifier.
+- Create shared test vectors.
+- Validate signatures.
+- Add constant-time comparison.
+- Add timestamp verification.
+
+Deliverable:
+
+Authenticated site-to-backend requests.
+
+## MILESTONE 07 — Replay and Idempotency
+
+Tasks:
+
+- Add Redis nonce store.
+- Add atomic nonce registration.
+- Reject replays.
+- Implement idempotency for important mutations.
+- Define retry behavior.
+
+Deliverable:
+
+Replay-resistant API.
+
+## MILESTONE 08 — Tenant Isolation
+
+Tasks:
+
+- Implement trusted tenant context.
+- Add tenant-scoped repositories.
+- Add site ownership checks.
+- Implement RLS where appropriate.
+- Scope vector retrieval.
+- Test cross-tenant isolation.
+
+Deliverable:
+
+Tenant-isolated backend.
+
+## MILESTONE 09 — Authorization and Rate Limits
+
+Tasks:
+
+- Define backend scopes.
+- Add operation policies.
+- Add tenant quotas foundation.
+- Add credential-level rate limits.
+- Add expensive job controls.
+
+Deliverable:
+
+Protected application operations.
+
+## MILESTONE 10 — SSRF and Crawler Protection
+
+Tasks:
+
+- URL validation.
+- DNS validation.
+- IP range blocking.
+- Redirect validation.
+- Response limits.
+- Egress controls.
+- Controlled SSRF tests.
+
+Deliverable:
+
+Hardened crawler network access.
+
+## MILESTONE 11 — Audit and Monitoring
+
+Tasks:
+
+- Add security events.
+- Add audit events.
+- Redact secrets.
+- Add request IDs.
+- Add security metrics.
+- Add incident response documentation.
+
+Deliverable:
+
+Security observability.
+
+## MILESTONE 12 — Connection Lifecycle
+
+Tasks:
+
+- Implement status state machine.
+- Implement health checks.
+- Implement disconnect.
+- Implement revoke.
+- Implement rotation.
+- Implement safe retry.
+
+Deliverable:
+
+Complete connection lifecycle.
+
+## MILESTONE 13 — Full Security Verification
+
+Tasks:
+
+- Run authentication tests.
+- Run replay tests.
+- Run tenant isolation tests.
+- Run SSRF tests.
+- Run WordPress security tests.
+- Run migration tests.
+- Run integration tests.
+- Run regression tests from Steps 01–03.
+
+Deliverable:
+
+`docs/security/SECURITY-TEST-REPORT.md`
+
+## MILESTONE 14 — Release Gate
+
+Tasks:
+
+- Review all critical findings.
+- Fix critical and high-risk issues.
+- Verify production configuration.
+- Verify secret handling.
+- Verify backup and recovery.
+- Verify deployment documentation.
+- Approve or block release.
+
+Deliverable:
+
+Step 04 acceptance report.
+
+---
+
+# 25. PRODUCTION DEPLOYMENT REQUIREMENTS
+
+Before production deployment:
+
+- HTTPS must be enforced.
+- TLS certificate validation must remain enabled.
+- Secrets must be supplied through protected configuration.
+- Database credentials must use least privilege.
+- Redis must not be publicly accessible.
+- PostgreSQL must not be publicly accessible.
+- Production debug mode must be disabled.
+- Error responses must not reveal stack traces.
+- Logs must be redacted.
+- Backups must be protected.
+- Credential rotation must be tested.
+- Revocation must be tested.
+- Time synchronization must be configured.
+- Network egress must be restricted where feasible.
+- Monitoring and alerting must be operational.
+
+A successful local test does not prove production infrastructure is secure.
+
+---
+
+# 26. DEFINITION OF DONE
+
+Step 04 is complete only when:
+
+- Site identity is unique and persistent.
+- Secure enrollment works.
+- Enrollment codes expire.
+- Enrollment codes are single-use.
+- Credentials are encrypted at rest.
+- Encryption keys are stored separately from encrypted database values.
+- HMAC signing works in PHP.
+- HMAC verification works in Python.
+- Shared canonicalization test vectors pass.
+- Timestamp verification works.
+- Replay protection works.
+- Idempotency works for important write operations.
+- Tenant identity is server-derived.
+- Cross-tenant access tests pass.
+- RAG retrieval is tenant-scoped.
+- Backend authorization works.
+- Rate limits work.
+- SSRF protection works.
+- Redirect validation works.
+- Credential rotation works.
+- Credential revocation works.
+- Audit logging works.
+- Sensitive logs are redacted.
+- Connection state machine works.
+- Backend health checks work.
+- WordPress REST permissions remain enforced.
+- Steps 01–03 regression tests pass.
+- Security test report is generated.
+- Critical security findings are resolved.
+
+---
+
+# 27. FINAL SECURITY ACCEPTANCE REPORT
+
+Generate:
+
+`docs/STEP-04-SECURITY-ACCEPTANCE-REPORT.md`
+
+Use this format:
+
+```
+BLOGNEXA AI — STEP 04 SECURITY REPORT
+
+ENVIRONMENT
+WordPress:
+PHP:
+Python:
+FastAPI:
+PostgreSQL:
+Redis:
+Deployment:
+
+SITE IDENTITY
+Unique Site ID:
+Duplicate Detection:
+Environment Isolation:
+
+ENROLLMENT
+Valid Enrollment:
+Expired Code:
+Single-use Code:
+Unauthorized Enrollment:
+
+CREDENTIAL SECURITY
+Encryption at Rest:
+Key Separation:
+Secret Redaction:
+Credential Rotation:
+Credential Revocation:
+
+AUTHENTICATION
+HMAC Signing:
+HMAC Verification:
+Canonicalization:
+Timestamp Validation:
+Replay Protection:
+Idempotency:
+
+TENANT ISOLATION
+Tenant Resolution:
+Database Isolation:
+RAG Isolation:
+Cross-Tenant Read:
+Cross-Tenant Write:
+
+AUTHORIZATION
+Site Permissions:
+Operation Permissions:
+WordPress Capabilities:
+Resource Ownership:
+
+SSRF
+Private IP Blocking:
+DNS Validation:
+Redirect Validation:
+Response Limits:
+Egress Restrictions:
+
+RATE LIMITING
+Credential Limit:
+Site Limit:
+Tenant Limit:
+Expensive Job Limit:
+
+AUDIT
+Security Events:
+Audit Events:
+Sensitive Data Redaction:
+
+RECOVERY
+Backend Failure:
+Redis Failure:
+Credential Rotation Failure:
+Database Recovery:
+
+REGRESSION
+Step 01:
+Step 02:
+Step 03:
+
+TEST SUMMARY
+Total Tests:
+Passed:
+Failed:
+Blocked:
+Not Run:
+
+CRITICAL FINDINGS:
+HIGH FINDINGS:
+MEDIUM FINDINGS:
+LOW FINDINGS:
+
+FINAL STATUS:
+PASS / FAIL / BLOCKED
+
+REMAINING RISKS:
+RECOMMENDATION:
+```
+
+All test statuses must be based on actual execution.
+
+A test that has not been executed must be marked NOT RUN.
+
+A test that cannot run because infrastructure is unavailable must be marked BLOCKED.
+
+---
+
+# 28. IMPORTANT IMPLEMENTATION RESTRICTIONS
+
+Antigravity must not:
+
+- Replace the approved architecture with an unrelated architecture.
+- Put backend secrets in React.
+- Hardcode production credentials.
+- Use plaintext credential storage.
+- Trust tenant IDs from requests.
+- Disable TLS verification.
+- Accept unsigned protected requests.
+- Disable replay protection to resolve a Redis problem.
+- Allow arbitrary URL crawling.
+- Bypass WordPress capability checks.
+- Suppress failing security tests.
+- Mark incomplete features as implemented.
+- Claim production security certification.
+- Modify existing migrations destructively without approval.
+
+If a security requirement conflicts with existing code, document the conflict, propose the smallest safe change, and implement it only after verifying compatibility.
+
+---
+
+# 29. FINAL ENGINEERING DIRECTIVE
+
+Implement Step 04 as a security-first backend connectivity phase.
+
+The final system must establish a secure relationship between each WordPress installation and the BlogNexa cloud backend.
+
+Every request must have a verifiable identity, every operation must have an authorization policy, every tenant-owned resource must have an ownership boundary, and every sensitive operation must be auditable.
+
+Do not optimize for the fastest successful connection.
+
+Optimize for a connection that remains secure under credential theft attempts, replay attacks, malicious inputs, unauthorized access, tenant boundary violations and infrastructure failures.
+
+The phase must not be accepted until its automated security tests, integration tests and regression tests have been executed and reviewed.
+
+# 2. Step 04-এর জন্য Antigravity Master Implementation Prompt
+
+নিচের prompt-টি সরাসরি Antigravity-তে ব্যবহার করতে পারো। এটি শুধু code generation নয়—প্রথমে repository audit, তারপর milestone-based implementation, এরপর automated testing এবং final security report তৈরি করতে নির্দেশ দেবে।
+
+# ANTIGRAVITY MASTER PROMPT
+
+# BLOGNEXA AI — STEP 04 SECURITY & BACKEND CONNECTION
+
+## ROLE
+
+Act as a Principal Security Engineer, Senior WordPress Plugin Architect, Python Backend Security Engineer, and SaaS Infrastructure Engineer.
+
+Your task is to implement BlogNexa AI Step 04: Security Foundation Hardening & Secure Backend Connection.
+
+Follow the engineering specification:
+
+`docs/BNX-ENG-004-STEP-04.md`
+
+If the document is located elsewhere, locate the actual file before implementation.
+
+## PROJECT CONTEXT
+
+BlogNexa AI uses:
+
+- WordPress plugin with PHP.
+- React and TypeScript admin interface.
+- FastAPI cloud backend.
+- PostgreSQL.
+- Redis.
+- Background workers.
+- A hybrid WordPress + cloud architecture.
+
+The WordPress Plugin owns the WordPress Admin interface, permissions, local settings, media and publishing integration.
+
+The cloud backend owns centralized processing, AI orchestration, knowledge storage, vector retrieval, research and background jobs.
+
+Google Gemini may be used as an AI provider through the approved provider abstraction. Do not introduce OpenAI or OpenRouter dependencies unless explicitly approved.
+
+## PHASE 1 — REPOSITORY AUDIT
+
+Before modifying code:
+
+1. Inspect the complete repository.
+2. Read Steps 01, 02 and 03.
+3. Inspect current PHP architecture.
+4. Inspect FastAPI architecture.
+5. Inspect all existing REST routes.
+6. Inspect authentication.
+7. Inspect database schema.
+8. Inspect Redis integration.
+9. Inspect current credential storage.
+10. Inspect tests and deployment configuration.
+
+Create:
+
+`docs/security/STEP-04-INITIAL-AUDIT.md`
+
+Classify every finding:
+
+- Implemented.
+- Partially implemented.
+- Missing.
+- Vulnerable.
+- Requires architectural decision.
+
+Do not assume the repository matches the documentation.
+
+## PHASE 2 — THREAT MODEL
+
+Create a documented threat model.
+
+Identify:
+
+- Credential theft.
+- Authentication bypass.
+- Replay attacks.
+- Cross-tenant access.
+- SSRF.
+- Privilege escalation.
+- AI prompt injection.
+- Unauthorized publishing.
+- Rate-limit abuse.
+- Data leakage.
+- Infrastructure failures.
+
+Define severity, impact, mitigation and test coverage.
+
+## PHASE 3 — SITE ENROLLMENT
+
+Implement:
+
+- Unique site instance identity.
+- Backend-owned site registration.
+- Secure enrollment sessions.
+- Single-use enrollment codes.
+- Enrollment expiration.
+- Authorization verification.
+- Duplicate registration handling.
+- Staging environment support.
+
+Never place permanent credentials in URLs, browser storage or HTML.
+
+## PHASE 4 — CREDENTIAL SECURITY
+
+Implement:
+
+- Versioned encrypted credential storage.
+- WordPress-side authenticated encryption.
+- Protected encryption key configuration.
+- Backend credential encryption.
+- Credential status.
+- Credential version.
+- Rotation.
+- Revocation.
+- Safe recovery.
+
+Never silently fall back to plaintext storage.
+
+Never hardcode production encryption keys.
+
+## PHASE 5 — HMAC AUTHENTICATION
+
+Implement a shared PHP and Python HMAC-SHA256 request-signing protocol.
+
+Requirements:
+
+- Canonical request format.
+- SHA-256 request body digest.
+- Timestamp.
+- Nonce.
+- Request ID.
+- Credential ID.
+- Key version.
+- Constant-time signature comparison.
+- Strict request validation.
+
+Create shared cross-language test vectors.
+
+Test PHP-generated signatures using Python verification and vice versa.
+
+Do not accept ambiguous canonical request formats.
+
+## PHASE 6 — REPLAY PROTECTION
+
+Implement:
+
+- Redis-backed nonce tracking.
+- Atomic SET NX behavior.
+- Timestamp expiry.
+- Duplicate nonce rejection.
+- Fail-closed behavior for protected operations when replay protection is unavailable.
+
+Implement idempotency for important mutation endpoints, especially job creation and publication.
+
+Do not confuse idempotency with replay protection.
+
+## PHASE 7 — TENANT ISOLATION
+
+Implement:
+
+- Trusted tenant context.
+- Authenticated site resolution.
+- Tenant-scoped repositories.
+- Site ownership checks.
+- RAG/vector retrieval filters.
+- Database isolation.
+- PostgreSQL RLS where appropriate.
+
+Never trust tenant_id from the frontend, request body or custom headers.
+
+Create at least two test tenants and verify that no cross-tenant read or write is possible.
+
+Treat any successful cross-tenant access as a critical release blocker.
+
+## PHASE 8 — AUTHORIZATION
+
+Implement separate authentication and authorization layers.
+
+Define operation scopes.
+
+Verify that each operation checks:
+
+- Authenticated site.
+- Tenant ownership.
+- Required scope.
+- Resource ownership.
+- Business policy.
+
+Maintain WordPress capability checks on every protected WordPress REST route.
+
+A REST nonce is not a replacement for authorization.
+
+## PHASE 9 — RATE LIMITING
+
+Implement limits based on:
+
+- Credential.
+- Site.
+- Tenant.
+- Endpoint.
+- Expensive operation.
+- Enrollment.
+
+Add usage controls for crawling, SEO research, AI generation and image generation.
+
+Return consistent rate-limit errors.
+
+## PHASE 10 — SSRF PROTECTION
+
+Harden all backend URL fetching and crawling.
+
+Implement:
+
+- URL validation.
+- DNS resolution validation.
+- IPv4 and IPv6 private/reserved address blocking.
+- Cloud metadata blocking.
+- Redirect revalidation.
+- DNS rebinding defenses.
+- Protocol restrictions.
+- Response size limits.
+- Decompression limits.
+- Timeout limits.
+- Egress restrictions where infrastructure allows.
+
+Do not execute downloaded scripts or server-side code.
+
+Do not treat crawled content as trusted instructions.
+
+## PHASE 11 — AUDIT LOGGING
+
+Implement structured security event logging.
+
+Log:
+
+- Enrollment.
+- Authentication failure.
+- Replay detection.
+- Permission denial.
+- Credential rotation.
+- Revocation.
+- Cross-tenant access attempts.
+- Rate limiting.
+- Sensitive configuration changes.
+
+Never log secrets, authorization headers, enrollment codes or private provider credentials.
+
+## PHASE 12 — CONNECTION LIFECYCLE
+
+Implement:
+
+- Disconnected.
+- Enrollment pending.
+- Authenticating.
+- Connected.
+- Degraded.
+- Retrying.
+- Revoked.
+
+Add health checks and controlled recovery.
+
+A locally stored credential does not prove the backend connection is healthy.
+
+## PHASE 13 — SECURITY TESTING
+
+Execute actual tests for:
+
+- Enrollment.
+- Authentication.
+- Signature validation.
+- Replay.
+- Idempotency.
+- Credential encryption.
+- Credential rotation.
+- Credential revocation.
+- Tenant isolation.
+- RAG isolation.
+- SSRF.
+- Redirect validation.
+- Rate limiting.
+- WordPress permissions.
+- Error handling.
+- Backend failure.
+- Redis failure.
+
+Use controlled environments for security testing.
+
+Do not run destructive tests against production.
+
+## PHASE 14 — REGRESSION TESTING
+
+Rerun relevant tests from:
+
+- Step 01.
+- Step 02.
+- Step 03.
+
+Verify that plugin activation, database migrations, WordPress Admin, REST APIs, React application and settings still work.
+
+## PHASE 15 — REPORTING
+
+Generate:
+
+`docs/security/STEP-04-INITIAL-AUDIT.md`
+
+`docs/security/THREAT-MODEL.md`
+
+`docs/security/AUTHENTICATION-PROTOCOL.md`
+
+`docs/security/TENANT-ISOLATION.md`
+
+`docs/security/SSRF-DEFENSE.md`
+
+`docs/security/SECURITY-OPERATIONS.md`
+
+`docs/security/SECURITY-TEST-REPORT.md`
+
+`docs/STEP-04-SECURITY-ACCEPTANCE-REPORT.md`
+
+## STRICT EXECUTION RULES
+
+- Implement incrementally.
+- Run tests after each milestone.
+- Do not rewrite working architecture unnecessarily.
+- Do not fabricate test results.
+- Do not suppress security failures.
+- Do not expose secrets.
+- Do not bypass permissions.
+- Do not weaken security to make tests pass.
+- Do not mark incomplete work as complete.
+- Document any deviation from the specification.
+
+If a requirement cannot be completed because an external service, credential or infrastructure dependency is missing, mark it BLOCKED and explain the exact dependency.
+
+## FINAL ACCEPTANCE
+
+Step 04 may be marked PASS only if:
+
+1. Secure enrollment works.
+2. HMAC authentication works across PHP and Python.
+3. Replay protection works.
+4. Credentials are protected at rest.
+5. Rotation and revocation work.
+6. Tenant isolation tests pass.
+7. RAG isolation tests pass.
+8. SSRF tests pass.
+9. Rate limits work.
+10. WordPress authorization remains intact.
+11. Steps 01–03 regression tests pass.
+12. No unresolved critical security finding remains.
+
+Produce a final evidence-based report.
+
+Do not claim the application is fully secure or certified. State the exact tests executed, environment used, unresolved risks and release recommendation.
+
+## 3. Step 04-এর পরবর্তী development sequence
+
+## BlogNexa AI — Engineering Roadmap
+
+1. Step 01 — Product & Technical Foundation
+
+   Specification delivered
+2. Step 02 — Plugin Core Architecture
+
+   Specification delivered
+3. Step 03 — Admin UI & UX
+
+   Specification delivered
+4. Step 04 — Security & Backend Connection
+
+   Specification delivered
+5. Step 05 — Website Crawler & Content Extraction Engine
+
+   Next phase
+
+Step 05-এ কী হবে? Website URL discovery, sitemap processing, page crawling, HTML extraction, canonical URL handling, duplicate detection, content normalization, incremental scanning এবং crawler job orchestration তৈরি হবে। Step 04-এর SSRF ও tenant-isolation protections ব্যবহার করেই crawler implement করতে হবে।
+
+## আমার একটি গুরুত্বপূর্ণ পরামর্শ
+
+Step 04-এ সবচেয়ে বেশি গুরুত্ব দেবে এই তিনটি বিষয়কে:
+
+1. Cross-tenant isolation: অন্য client-এর website data যেন কোনোভাবেই access করা না যায়।
+2. Credential lifecycle: Connection তৈরি, secret rotation এবং revocation—সবকিছু যেন নির্ভরযোগ্য হয়।
+3. SSRF protection: BlogNexa-এর crawler যেন কোনো malicious URL ব্যবহার করে internal server বা cloud infrastructure access করতে না পারে।
+
+এই তিনটি বিষয় production acceptance-এর আগে অবশ্যই বাস্তবে পরীক্ষা করতে হবে। আমি এখনো তোমার repository-তে Step 04 implementation বা security tests চালাইনি; Antigravity-এর report বা project files পেলে সেগুলো যাচাই করা যাবে।
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-11-09T22:06:53+06:00.
+
+The user's current state is as follows:
+Active Document: h:\Rasel\all_local_Projecrt\client-acquisition-os\scripts\verify_ai_service_icp_architect_e2e.js (LANGUAGE_UNSPECIFIED)
+Cursor is on line: 1
+Other open documents:
+- h:\Rasel\all_local_Projecrt\client-acquisition-os\apps\web\lib\extension-pairing-service.ts (LANGUAGE_UNSPECIFIED)
+- c:\Users\MD RASEL ISLAM\AppData\Local\Temp\caos_test_runner\browser_ui_reconciliation_test.js (LANGUAGE_UNSPECIFIED)
+- c:\Users\MD RASEL ISLAM\AppData\Local\Temp\caos_test_runner\test_pure_dom_scroll.js (LANGUAGE_UNSPECIFIED)
+- c:\Users\MD RASEL ISLAM\AppData\Local\Temp\caos_test_runner\test_unlimited_live.js (LANGUAGE_UNSPECIFIED)
+- c:\Users\MD RASEL ISLAM\AppData\Local\Temp\caos_test_runner\full_browser_test.js (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>

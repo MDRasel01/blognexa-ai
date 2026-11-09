@@ -230,6 +230,22 @@ if (!function_exists('wp_die')) {
         throw new \RuntimeException($msg);
     }
 }
+if (!function_exists('home_url')) {
+    function home_url(string $path = ''): string { return 'https://example.com' . ($path ? '/' . ltrim($path, '/') : ''); }
+}
+if (!function_exists('site_url')) {
+    function site_url(string $path = ''): string { return 'https://example.com' . ($path ? '/' . ltrim($path, '/') : ''); }
+}
+if (!function_exists('get_bloginfo')) {
+    function get_bloginfo(string $show = ''): string {
+        if ($show === 'name') return 'BlogNexa Test Site';
+        if ($show === 'admin_email') return 'admin@example.com';
+        return '';
+    }
+}
+if (!function_exists('is_multisite')) {
+    function is_multisite(): bool { return false; }
+}
 
 // WP_Error & WP_REST Mocks
 class WP_Error

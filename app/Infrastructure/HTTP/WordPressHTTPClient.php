@@ -1,6 +1,6 @@
 <?php
 /**
- * BlogNexa AI - WordPress HTTP Client with SSRF Guard
+ * BlogNexa AI - WordPress HTTP Client with SSRF Guard & HMAC Signing
  *
  * @package BlogNexaAI\Infrastructure\HTTP
  */
@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace BlogNexaAI\Infrastructure\HTTP;
 
-use BlogNexaAI\Security\SecretManager;
+use BlogNexaAI\Security\CredentialStore;
 use WP_Error;
 
 if (!defined('ABSPATH')) {
@@ -20,35 +20,47 @@ final class WordPressHTTPClient implements BackendClientInterface
 {
     private string $baseUrl;
     private int $timeout;
+    private bool $signRequests;
 
-    public function __construct(string $baseUrl = 'https://api.blognexa.ai', int $timeout = 20)
+    public function __construct(string $baseUrl = 'https://api.blognexa.ai', int $timeout = 20, bool $signRequests = true)
     {
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->timeout = $timeout;
+        $this->signRequests = $signRequests;
     }
 
     /**
      * Send GET request.
      */
-    public function get(string $endpoint, array $headers = []): array|WP_Error
+    public function get(string $endpoint, array $headers = [], ?int $timeout = null): array|WP_Error
     {
-        return $this->request('GET', $endpoint, [], $headers);
+        return $this->request('GET', $endpoint, [], $headers, $timeout);
     }
 
     /**
      * Send POST request.
      */
-    public function post(string $endpoint, array $body = [], array $headers = []): array|WP_Error
+    public function post(string $endpoint, array $body = [], array $headers = [], ?int $timeout = null): array|WP_Error
     {
-        return $this->request('POST', $endpoint, $body, $headers);
+        return $this->request('POST', $endpoint, $body, $headers, $timeout);
     }
 
     /**
      * Internal secure request execution.
      */
-    private function request(string $method, string $endpoint, array $body = [], array $headers = []): array|WP_Error
-    {
-        $fullUrl = $this->baseUrl . '/' . ltrim($endpoint, '/');
+    private function request(
+        string $method,
+        string $endpoint,
+        array $body = [],
+        array $headers = [],
+        ?int $timeout = null
+    ): array|WP_Error {
+        $cleanEndpoint = '/' . ltrim($endpoint, '/');
+        $parts = parse_url($cleanEndpoint);
+        $path = $parts['path'] ?? $cleanEndpoint;
+        $query = $parts['query'] ?? '';
+
+        $fullUrl = $this->baseUrl . $cleanEndpoint;
 
         // SSRF Guard: Validate destination before network egress
         $ssrfCheck = $this->validateDestinationUrl($fullUrl);
@@ -56,23 +68,47 @@ final class WordPressHTTPClient implements BackendClientInterface
             return $ssrfCheck;
         }
 
+        $rawBody = '';
+        if ($method === 'POST' && !empty($body)) {
+            $encoded = wp_json_encode($body);
+            $rawBody = $encoded !== false ? $encoded : '';
+        }
+
+        $signingHeaders = [];
+        if ($this->signRequests && CredentialStore::hasCredentials()) {
+            $creds = CredentialStore::getCredentials();
+            if ($creds && !empty($creds['credential_id']) && !empty($creds['api_secret'])) {
+                $signingHeaders = RequestSigner::signRequest(
+                    $method,
+                    $path,
+                    $query,
+                    $rawBody,
+                    (string) $creds['credential_id'],
+                    (string) $creds['api_secret'],
+                    (string) ($creds['key_version'] ?? '1')
+                );
+            }
+        }
+
         $defaultHeaders = [
             'Content-Type' => 'application/json',
             'Accept'       => 'application/json',
-            'User-Agent'   => 'BlogNexa-AI-Plugin/' . BLOGNEXA_VERSION,
+            'User-Agent'   => 'BlogNexa-AI-Plugin/' . (defined('BLOGNEXA_VERSION') ? BLOGNEXA_VERSION : '1.0.0'),
         ];
+
+        $allHeaders = array_merge($defaultHeaders, $headers, $signingHeaders);
 
         $args = [
             'method'      => $method,
-            'timeout'     => $this->timeout,
+            'timeout'     => $timeout ?? $this->timeout,
             'redirection' => 2,
             'httpversion' => '1.1',
-            'headers'     => array_merge($defaultHeaders, $headers),
+            'headers'     => $allHeaders,
             'sslverify'   => true,
         ];
 
-        if ($method === 'POST' && !empty($body)) {
-            $args['body'] = wp_json_encode($body);
+        if ($method === 'POST' && $rawBody !== '') {
+            $args['body'] = $rawBody;
         }
 
         $response = wp_remote_request($fullUrl, $args);
@@ -86,15 +122,21 @@ final class WordPressHTTPClient implements BackendClientInterface
         }
 
         $statusCode = wp_remote_retrieve_response_code($response);
-        $rawBody = wp_remote_retrieve_body($response);
-        $data = json_decode($rawBody, true);
+        $responseBody = wp_remote_retrieve_body($response);
+        $data = json_decode($responseBody, true);
 
         if ($statusCode >= 400) {
-            $errorMessage = is_array($data) && isset($data['message']) ? $data['message'] : __('Backend returned an error.', 'blognexa-ai');
-            return new WP_Error('blognexa_backend_error', $errorMessage, ['status' => $statusCode, 'data' => $data]);
+            $errorMessage = is_array($data) && isset($data['message'])
+                ? $data['message']
+                : (is_array($data) && isset($data['detail']) ? (string)$data['detail'] : __('Backend returned an error.', 'blognexa-ai'));
+
+            return new WP_Error('blognexa_backend_error', $errorMessage, [
+                'status' => $statusCode,
+                'data'   => $data,
+            ]);
         }
 
-        return is_array($data) ? $data : ['raw' => $rawBody];
+        return is_array($data) ? $data : ['raw' => $responseBody];
     }
 
     /**
@@ -142,7 +184,7 @@ final class WordPressHTTPClient implements BackendClientInterface
             }
 
             // Check cloud metadata link-local
-            if (str_starts_with($ip, '169.254.')) {
+            if (str_starts_with($ip, '169.254.') || str_starts_with(strtolower($ip), 'fe80:')) {
                 return new WP_Error('blognexa_ssrf_cloud_metadata', __('Connecting to cloud metadata endpoint is forbidden.', 'blognexa-ai'));
             }
 
