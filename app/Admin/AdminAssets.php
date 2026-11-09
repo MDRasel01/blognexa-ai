@@ -30,13 +30,15 @@ final class AdminAssets
      */
     public function enqueue(string $hookSuffix): void
     {
-        // Enqueue only on blognexa admin screens
-        if (!str_contains($hookSuffix, 'blognexa-ai')) {
+        $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
+        $isBlogNexaScreen = str_contains($hookSuffix, 'blognexa-ai') || str_contains($page, 'blognexa-ai');
+
+        if (!$isBlogNexaScreen) {
             return;
         }
 
         $assetFile = BLOGNEXA_PATH . 'build/index.asset.php';
-        $dependencies = ['wp-element', 'wp-components', 'wp-i18n', 'wp-api-fetch'];
+        $dependencies = [];
         $version = BLOGNEXA_VERSION;
 
         if (file_exists($assetFile)) {
@@ -45,7 +47,7 @@ final class AdminAssets
             $version = $asset['version'] ?? $version;
         }
 
-        // Enqueue React Script if built, otherwise placeholder
+        // Enqueue React Script if built
         $jsUrl = plugins_url('build/index.js', BLOGNEXA_FILE);
         if (file_exists(BLOGNEXA_PATH . 'build/index.js')) {
             wp_enqueue_script(
@@ -63,7 +65,7 @@ final class AdminAssets
             wp_enqueue_style(
                 'blognexa-admin-styles',
                 $cssUrl,
-                ['wp-components'],
+                [],
                 $version
             );
         }

@@ -189,3 +189,4 @@ export const PublishingView: React.FC = () => {
     </div>
   );
 };
+

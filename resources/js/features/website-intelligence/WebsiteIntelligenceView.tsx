@@ -270,3 +270,4 @@ export const WebsiteIntelligenceView: React.FC = () => {
     </div>
   );
 };
+
