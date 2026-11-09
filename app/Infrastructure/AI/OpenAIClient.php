@@ -180,3 +180,4 @@ final class OpenAIClient implements AIClientInterface
         return $parsed;
     }
 }
+

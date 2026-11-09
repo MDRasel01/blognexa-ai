@@ -246,6 +246,85 @@ if (!function_exists('get_bloginfo')) {
 if (!function_exists('is_multisite')) {
     function is_multisite(): bool { return false; }
 }
+if (!function_exists('get_site_option')) {
+    function get_site_option(string $key, $default = false) { return get_option($key, $default); }
+}
+if (!function_exists('get_plugins')) {
+    function get_plugins(): array {
+        global $test_installed_plugins;
+        return $test_installed_plugins ?? [
+            'seo-by-rank-math/seo-by-rank-math.php' => [
+                'Name' => 'Rank Math SEO',
+                'Version' => '1.0.220',
+            ],
+        ];
+    }
+}
+if (!function_exists('is_plugin_active')) {
+    function is_plugin_active(string $plugin): bool {
+        global $test_active_plugins;
+        $active = $test_active_plugins ?? ['seo-by-rank-math/seo-by-rank-math.php'];
+        return in_array($plugin, $active, true);
+    }
+}
+if (!function_exists('admin_url')) {
+    function admin_url(string $path = ''): string { return 'https://example.com/wp-admin/' . ltrim($path, '/'); }
+}
+if (!function_exists('wp_nonce_url')) {
+    function wp_nonce_url(string $actionurl, int|string $action = -1, string $name = '_wpnonce'): string {
+        return $actionurl . (str_contains($actionurl, '?') ? '&' : '?') . $name . '=mocknonce';
+    }
+}
+if (!function_exists('get_post_types')) {
+    function get_post_types(array $args = [], string $output = 'names'): array {
+        $types = [
+            'post' => (object) [
+                'name' => 'post',
+                'label' => 'Posts',
+                'labels' => (object) ['singular_name' => 'Post'],
+                'public' => true,
+                'publicly_queryable' => true,
+                'show_ui' => true,
+                'show_in_rest' => true,
+                '_builtin' => true,
+                'cap' => (object) ['edit_posts' => 'edit_posts', 'publish_posts' => 'publish_posts'],
+            ],
+            'page' => (object) [
+                'name' => 'page',
+                'label' => 'Pages',
+                'labels' => (object) ['singular_name' => 'Page'],
+                'public' => true,
+                'publicly_queryable' => true,
+                'show_ui' => true,
+                'show_in_rest' => true,
+                '_builtin' => true,
+                'cap' => (object) ['edit_posts' => 'edit_pages', 'publish_posts' => 'publish_pages'],
+            ],
+            'product' => (object) [
+                'name' => 'product',
+                'label' => 'Products',
+                'labels' => (object) ['singular_name' => 'Product'],
+                'public' => true,
+                'publicly_queryable' => true,
+                'show_ui' => true,
+                'show_in_rest' => true,
+                '_builtin' => false,
+                'cap' => (object) ['edit_posts' => 'edit_products', 'publish_posts' => 'publish_products'],
+            ],
+        ];
+
+        if ($output === 'names') {
+            return array_keys($types);
+        }
+        return $types;
+    }
+}
+if (!function_exists('get_post_type_object')) {
+    function get_post_type_object(string $post_type) {
+        $types = get_post_types([], 'objects');
+        return $types[$post_type] ?? null;
+    }
+}
 
 // WP_Error & WP_REST Mocks
 class WP_Error

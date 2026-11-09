@@ -5,6 +5,7 @@ $zipPath = 'H:\Rasel\all_local_Projecrt\blognexa-ai.zip'
 # 1. Sync to local XAMPP
 if (Test-Path $dest) {
     Copy-Item -Path "$src\app" -Destination $dest -Recurse -Force
+    Copy-Item -Path "$src\build" -Destination $dest -Recurse -Force
     Copy-Item -Path "$src\docs" -Destination $dest -Recurse -Force
     Copy-Item -Path "$src\tests" -Destination $dest -Recurse -Force
     Write-Output 'Synced updated plugin files to local XAMPP cleanblog.'

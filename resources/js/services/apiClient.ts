@@ -2,7 +2,17 @@
  * BlogNexa AI - Centralized Frontend REST API Client
  */
 
-import { BootConfig, ApiResponse, PluginStatus, ConnectionStatus, PluginSettings, AIConfig } from '../types';
+import {
+  BootConfig,
+  ApiResponse,
+  PluginStatus,
+  ConnectionStatus,
+  PluginSettings,
+  AIConfig,
+  SEODetectionResponse,
+  PostTypesResponse,
+  CoreEngineStatusResponse,
+} from '../types';
 
 class ApiClient {
   private getBootConfig(): BootConfig {
@@ -107,6 +117,32 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(params || {}),
     });
+  }
+
+  public async getSEODetection(): Promise<ApiResponse<SEODetectionResponse>> {
+    return this.request<ApiResponse<SEODetectionResponse>>('integrations/seo');
+  }
+
+  public async setPrimarySEO(provider: string): Promise<ApiResponse<SEODetectionResponse>> {
+    return this.request<ApiResponse<SEODetectionResponse>>('integrations/seo/primary', {
+      method: 'POST',
+      body: JSON.stringify({ provider }),
+    });
+  }
+
+  public async getPostTypes(): Promise<ApiResponse<PostTypesResponse>> {
+    return this.request<ApiResponse<PostTypesResponse>>('integrations/post-types');
+  }
+
+  public async savePostTypes(enabledTypes: string[]): Promise<ApiResponse<PostTypesResponse>> {
+    return this.request<ApiResponse<PostTypesResponse>>('integrations/post-types', {
+      method: 'POST',
+      body: JSON.stringify({ enabled_types: enabledTypes }),
+    });
+  }
+
+  public async getCoreEngineStatus(): Promise<ApiResponse<CoreEngineStatusResponse>> {
+    return this.request<ApiResponse<CoreEngineStatusResponse>>('integrations/core');
   }
 }
 

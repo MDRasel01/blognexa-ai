@@ -127,8 +127,8 @@ const MainRouter: React.FC = () => {
 
   const isConn = connectionStatus?.connected ?? false;
   const badgeLabel = isConn
-    ? (connectionStatus?.mode === 'standalone' ? `AI Ready (${(connectionStatus?.provider || 'Gemini').toUpperCase()})` : 'Cloud Online')
-    : 'API Key Required';
+    ? 'Gemini Connected'
+    : 'Gemini Key Required';
   const badgeVariant = isConn ? 'healthy' : 'warning';
 
   return (

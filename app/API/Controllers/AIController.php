@@ -117,3 +117,4 @@ final class AIController extends BaseController
         return ApiResponse::success($result);
     }
 }
+

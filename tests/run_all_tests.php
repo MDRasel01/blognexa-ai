@@ -14,9 +14,11 @@ require_once __DIR__ . '/Security/CredentialStoreTest.php';
 require_once __DIR__ . '/Security/RequestSignerTest.php';
 require_once __DIR__ . '/Security/ConnectionStateMachineTest.php';
 require_once __DIR__ . '/Unit/AIFactoryTest.php';
+require_once __DIR__ . '/Unit/IntegrationsTest.php';
 
 use BlogNexaAI\Tests\Unit\CoreAndSecurityTest;
 use BlogNexaAI\Tests\Unit\AIFactoryTest;
+use BlogNexaAI\Tests\Unit\IntegrationsTest;
 use BlogNexaAI\Tests\Integration\LifecycleAndApiTest;
 use BlogNexaAI\Tests\Security\SecurityScenarioTest;
 use BlogNexaAI\Tests\Security\SiteIdentityTest;
@@ -48,6 +50,7 @@ $allSuites = [
     'Step 04: HMAC Request Signing'      => $formatSuite(RequestSignerTest::run()),
     'Step 04: Connection State Machine'  => $formatSuite(ConnectionStateMachineTest::run()),
     'Standalone AI & Native Crawler'     => $formatSuite(AIFactoryTest::run()),
+    'Integrations & Post Types'          => $formatSuite(IntegrationsTest::run()),
 ];
 
 $totalTests = 0;

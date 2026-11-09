@@ -256,35 +256,6 @@ export const WebsiteIntelligenceView: React.FC = () => {
       />
 
       <div style={{ padding: '24px 32px' }}>
-        {/* Backend Warning Banner if Disconnected */}
-        {!isConnected && (
-          <div
-            style={{
-              padding: '16px 20px',
-              borderRadius: '8px',
-              background: '#fef3c7',
-              border: '1px solid #fde68a',
-              color: '#92400e',
-              fontSize: '13px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '24px',
-            }}
-          >
-            <div>
-              <strong>Cloud Backend Connection Required:</strong> Website crawling, DOM parsing, and deep semantic analysis run on the secure cloud engine to protect your WordPress server resources.
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setActiveModule('integrations')}
-            >
-              Connect Backend
-            </Button>
-          </div>
-        )}
-
         {/* Scan Configuration & Progress */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '24px' }}>
           <Card

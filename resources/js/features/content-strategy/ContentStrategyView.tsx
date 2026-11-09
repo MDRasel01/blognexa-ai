@@ -116,10 +116,10 @@ export const ContentStrategyView: React.FC = () => {
           {topics.length === 0 ? (
             <EmptyState
               title="No Topic Recommendations Yet"
-              description="Strategic topic generation requires an active Cloud AI backend connection and knowledge base indexing. Generate topic clusters once your foundation data is synced."
+              description="Strategic topic generation uses Google Gemini AI to analyze your website's content and recommend high-impact topics."
               badgeLabel="STRATEGY PENDING"
-              actionLabel={isConnected ? 'Formulate Initial Strategy' : 'Configure Backend Connection'}
-              onAction={isConnected ? () => {} : () => setActiveModule('integrations')}
+              actionLabel={isConnected ? 'Formulate Initial Strategy' : 'Configure Gemini AI'}
+              onAction={isConnected ? () => {} : () => setActiveModule('settings')}
             />
           ) : (
             <div>Topics list</div>

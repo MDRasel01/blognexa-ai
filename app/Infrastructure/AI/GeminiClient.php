@@ -181,3 +181,4 @@ final class GeminiClient implements AIClientInterface
         return $parsed;
     }
 }
+

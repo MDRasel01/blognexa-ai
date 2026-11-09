@@ -93,6 +93,65 @@ export interface ApiError {
   };
 }
 
+export interface SEOProviderItem {
+  id: 'rankmath' | 'yoast' | 'aioseo';
+  name: string;
+  slug: string;
+  file: string;
+  status: 'connected' | 'installed_inactive' | 'not_installed';
+  status_label: string;
+  version: string;
+  description: string;
+  action_url: string;
+  is_active: boolean;
+  is_primary: boolean;
+}
+
+export interface SEODetectionResponse {
+  providers: Record<string, SEOProviderItem>;
+  active_count: number;
+  primary_provider: string | null;
+  has_conflict: boolean;
+  conflict_message: string | null;
+}
+
+export interface DiscoveredPostType {
+  slug: string;
+  name: string;
+  label: string;
+  singular_label: string;
+  is_public: boolean;
+  show_in_rest: boolean;
+  is_builtin: boolean;
+  published_count: number;
+  is_enabled: boolean;
+  description: string;
+}
+
+export interface PostTypesResponse {
+  post_types: DiscoveredPostType[];
+  enabled_types: string[];
+}
+
+export interface CoreEngineStatusResponse {
+  engine: {
+    name: string;
+    status: string;
+    status_label: string;
+    description: string;
+  };
+  runtime: {
+    wp_version: string;
+    php_version: string;
+    mysql_version: string;
+    rest_available: boolean;
+    rest_namespace: string;
+    multisite: boolean;
+    memory_limit: string;
+    max_upload_size: string;
+  };
+}
+
 export type ModuleId =
   | 'overview'
   | 'website-intelligence'

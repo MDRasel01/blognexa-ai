@@ -187,3 +187,4 @@ final class NativeCrawler
         return $headings;
     }
 }
+

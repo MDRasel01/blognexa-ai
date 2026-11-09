@@ -53,3 +53,4 @@ interface AIClientInterface
      */
     public function generateStructured(string $prompt, array $schema = [], array $options = []): array|WP_Error;
 }
+
