@@ -88,3 +88,4 @@ def revoke_credentials(ctx: TenantContext = Depends(verify_hmac_request)):
         "credential_id": ctx.credential_id,
         "status": "revoked"
     }
+

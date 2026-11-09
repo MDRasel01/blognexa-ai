@@ -47,3 +47,4 @@ def query_knowledge(
         "results": results,
         "total": len(results)
     }
+

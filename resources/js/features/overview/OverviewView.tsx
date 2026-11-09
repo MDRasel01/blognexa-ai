@@ -21,8 +21,8 @@ export const OverviewView: React.FC = () => {
         description="Real-time operational status, database health, and module readiness of BlogNexa AI."
         badge={
           <Badge
-            label={isConnected ? 'Cloud Online' : 'Cloud Disconnected'}
-            variant={isConnected ? 'healthy' : 'disconnected'}
+            label={isConnected ? `AI Active (${(connectionStatus?.provider || 'Direct').toUpperCase()})` : 'AI Key Required'}
+            variant={isConnected ? 'healthy' : 'warning'}
           />
         }
         actions={
@@ -45,16 +45,16 @@ export const OverviewView: React.FC = () => {
           <StatCard
             title="Plugin Foundation"
             value={`v${version}`}
-            badgeLabel="Phase 02 Ready"
+            badgeLabel="Standalone Mode"
             badgeVariant="healthy"
             description={`PHP ${phpVersion} • WordPress ${wpVersion}`}
           />
           <StatCard
-            title="Cloud AI Backend"
-            value={isConnected ? 'Connected' : 'Offline'}
-            badgeLabel={isConnected ? 'Healthy' : 'Disconnected'}
-            badgeVariant={isConnected ? 'healthy' : 'disconnected'}
-            description={connectionStatus?.backend_url || 'https://api.blognexa.ai (Default)'}
+            title="AI Engine"
+            value={isConnected ? 'Ready' : 'Setup Required'}
+            badgeLabel={isConnected ? 'Active' : 'Key Missing'}
+            badgeVariant={isConnected ? 'healthy' : 'warning'}
+            description={isConnected ? (connectionStatus?.backend_url || 'Direct API') : 'Configure API key in Settings'}
           />
           <StatCard
             title="Database Tables"
@@ -76,13 +76,13 @@ export const OverviewView: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
           {/* Website Connection Card */}
           <Card
-            title="Website Connection & Security"
-            subtitle="Local WordPress to Cloud AI bridge identity"
+            title="AI Engine & Security"
+            subtitle="Autonomous WordPress standalone intelligence status"
             actions={
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setActiveModule('integrations')}
+                onClick={() => setActiveModule('settings')}
               >
                 Configure
               </Button>
@@ -90,10 +90,10 @@ export const OverviewView: React.FC = () => {
           >
             <div style={{ fontSize: '13px', lineHeight: 1.8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '6px 0' }}>
-                <span style={{ color: '#64748b' }}>Connection Status:</span>
+                <span style={{ color: '#64748b' }}>Engine Status:</span>
                 <Badge
-                  label={isConnected ? 'Connected' : 'Disconnected'}
-                  variant={isConnected ? 'healthy' : 'disconnected'}
+                  label={isConnected ? `Active (${(connectionStatus?.provider || 'Direct').toUpperCase()})` : 'Setup Required'}
+                  variant={isConnected ? 'healthy' : 'warning'}
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '6px 0' }}>

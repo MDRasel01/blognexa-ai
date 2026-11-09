@@ -12,6 +12,8 @@ namespace BlogNexaAI\API;
 use BlogNexaAI\API\Controllers\StatusController;
 use BlogNexaAI\API\Controllers\SettingsController;
 use BlogNexaAI\API\Controllers\ConnectionController;
+use BlogNexaAI\API\Controllers\CrawlerController;
+use BlogNexaAI\API\Controllers\AIController;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -36,6 +38,8 @@ final class RESTRegistrar
             new StatusController(),
             new SettingsController(),
             new ConnectionController(),
+            new CrawlerController(),
+            new AIController(),
         ];
 
         foreach ($controllers as $controller) {

@@ -5,7 +5,8 @@ import { Button } from '../../components/Button/Button';
 import { Badge } from '../../components/Badge/Badge';
 import { ConfirmDialog } from '../../components/ConfirmDialog/ConfirmDialog';
 import { useApp } from '../../state/AppContext';
-import { PluginSettings } from '../../types';
+import { PluginSettings, AIConfig } from '../../types';
+import { apiClient } from '../../services/apiClient';
 
 export const SettingsView: React.FC = () => {
   const { settings, updateSettings, pluginStatus, bootConfig, hasCapability, isLoading } = useApp();
@@ -23,6 +24,22 @@ export const SettingsView: React.FC = () => {
     purge_data_on_uninstall: false,
   });
 
+  // Standalone AI Provider configuration
+  const [aiConfig, setAiConfig] = useState<AIConfig>({
+    provider: 'gemini',
+    gemini_model: 'gemini-1.5-flash',
+    gemini_api_key: '',
+    has_gemini_key: false,
+    openai_model: 'gpt-4o-mini',
+    openai_api_key: '',
+    has_openai_key: false,
+    is_configured: false,
+    last_tested_at: null,
+    last_test_status: null,
+  });
+  const [isTestingAI, setIsTestingAI] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
@@ -34,6 +51,14 @@ export const SettingsView: React.FC = () => {
       setFormData(settings);
     }
   }, [settings]);
+
+  useEffect(() => {
+    apiClient.getAIConfig().then((res) => {
+      if (res && res.data) {
+        setAiConfig(res.data);
+      }
+    }).catch(() => {});
+  }, []);
 
   const handleFieldChange = (key: keyof PluginSettings, value: any) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -49,13 +74,51 @@ export const SettingsView: React.FC = () => {
     setIsSaving(true);
     setSaveMessage(null);
 
-    const success = await updateSettings(formData);
+    const [settingsSuccess, aiSuccess] = await Promise.all([
+      updateSettings(formData),
+      apiClient.saveAIConfig(aiConfig).then(() => true).catch(() => false),
+    ]);
+
     setIsSaving(false);
 
-    if (success) {
-      setSaveMessage({ text: 'Settings updated successfully via REST API.', type: 'success' });
+    if (settingsSuccess && aiSuccess) {
+      setSaveMessage({ text: 'All settings and AI credentials saved securely.', type: 'success' });
+    } else if (settingsSuccess) {
+      setSaveMessage({ text: 'Plugin settings updated, but AI config failed to save.', type: 'error' });
     } else {
       setSaveMessage({ text: 'Failed to update settings. Please check server logs.', type: 'error' });
+    }
+  };
+
+  const handleTestAI = async () => {
+    setIsTestingAI(true);
+    setAiTestResult(null);
+
+    const key = aiConfig.provider === 'openai' ? aiConfig.openai_api_key : aiConfig.gemini_api_key;
+    const model = aiConfig.provider === 'openai' ? aiConfig.openai_model : aiConfig.gemini_model;
+
+    try {
+      const res = await apiClient.testAIConnection({
+        provider: aiConfig.provider,
+        api_key: key,
+        model: model,
+      });
+
+      if (res && res.data) {
+        setAiTestResult({
+          success: true,
+          message: `Connection Verified! Connected to ${aiConfig.provider.toUpperCase()} (${res.data.model}) in ${res.data.latency_ms}ms.`,
+        });
+      } else {
+        setAiTestResult({ success: false, message: 'Invalid response from AI provider.' });
+      }
+    } catch (err: any) {
+      setAiTestResult({
+        success: false,
+        message: err?.message || 'Connection test failed. Check API key and network permissions.',
+      });
+    } finally {
+      setIsTestingAI(false);
     }
   };
 
@@ -172,24 +235,193 @@ export const SettingsView: React.FC = () => {
         )}
 
         {activeTab === 'ai' && (
-          <Card title="AI Model & Inference Configuration" subtitle="Model selection and prompt safety boundaries">
-            <div className="bnx-form-group">
-              <label className="bnx-form-label">Primary LLM Model Tier</label>
-              <select className="bnx-select" defaultValue="claude-3-5-sonnet">
-                <option value="claude-3-5-sonnet">Claude 3.5 Sonnet (Recommended for Deep Research & Nuance)</option>
-                <option value="gpt-4o">GPT-4o (High Speed & Structural Consistency)</option>
-                <option value="gemini-1-5-pro">Gemini 1.5 Pro (Large Context Window Analysis)</option>
-              </select>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <Card
+              title="Standalone Direct AI Configuration"
+              subtitle="Connect directly to Google Gemini or OpenAI with zero external server requirements"
+              actions={
+                <Badge
+                  label={aiConfig.is_configured ? 'API Key Configured' : 'Key Required'}
+                  variant={aiConfig.is_configured ? 'healthy' : 'warning'}
+                />
+              }
+            >
+              {/* Test Connection Banner */}
+              {aiTestResult && (
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: '6px',
+                    marginBottom: '16px',
+                    fontSize: '13px',
+                    background: aiTestResult.success ? '#dcfce7' : '#fee2e2',
+                    color: aiTestResult.success ? '#15803d' : '#b91c1c',
+                    border: `1px solid ${aiTestResult.success ? '#bbf7d0' : '#fecaca'}`,
+                  }}
+                >
+                  {aiTestResult.success ? '✓ ' : '⚠️ '}
+                  {aiTestResult.message}
+                </div>
+              )}
 
-            <div className="bnx-form-group">
-              <label className="bnx-form-label">AI Hallucination Guardrail</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                <input type="checkbox" defaultChecked disabled />
-                <span>Strict Fact Grounding via Knowledge Base (Enforced by architecture)</span>
+              {/* Provider Selection */}
+              <div className="bnx-form-group">
+                <label className="bnx-form-label" style={{ fontWeight: 600 }}>Active AI Provider</label>
+                <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      border: aiConfig.provider === 'gemini' ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: aiConfig.provider === 'gemini' ? '#eff6ff' : '#ffffff',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="ai_provider"
+                      value="gemini"
+                      checked={aiConfig.provider === 'gemini'}
+                      onChange={() => setAiConfig((prev) => ({ ...prev, provider: 'gemini' }))}
+                    />
+                    <span>✨ Google Gemini (Recommended — Free Tier Available)</span>
+                  </label>
+
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      border: aiConfig.provider === 'openai' ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: aiConfig.provider === 'openai' ? '#eff6ff' : '#ffffff',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="ai_provider"
+                      value="openai"
+                      checked={aiConfig.provider === 'openai'}
+                      onChange={() => setAiConfig((prev) => ({ ...prev, provider: 'openai' }))}
+                    />
+                    <span>⚡ OpenAI (GPT-4o / GPT-4o-mini)</span>
+                  </label>
+                </div>
               </div>
-            </div>
-          </Card>
+
+              {/* Gemini Configuration */}
+              {aiConfig.provider === 'gemini' && (
+                <div style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div className="bnx-form-group">
+                    <label className="bnx-form-label">Google Gemini API Key</label>
+                    <input
+                      type="password"
+                      className="bnx-input"
+                      placeholder={aiConfig.has_gemini_key ? '••••••••••••••••••••••••' : 'Paste Google Gemini API key...'}
+                      value={aiConfig.gemini_api_key}
+                      onChange={(e) => setAiConfig((prev) => ({ ...prev, gemini_api_key: e.target.value }))}
+                      style={{ maxWidth: '520px', fontFamily: 'monospace' }}
+                    />
+                    <div className="bnx-form-help" style={{ marginTop: '6px' }}>
+                      🔑 Need an API key? You can get a free Gemini API key in 30 seconds from{' '}
+                      <a
+                        href="https://aistudio.google.com/app/apikey"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}
+                      >
+                        Google AI Studio (Click here)
+                      </a>.
+                    </div>
+                  </div>
+
+                  <div className="bnx-form-group">
+                    <label className="bnx-form-label">Gemini Model</label>
+                    <select
+                      className="bnx-select"
+                      value={aiConfig.gemini_model || 'gemini-1.5-flash'}
+                      onChange={(e) => setAiConfig((prev) => ({ ...prev, gemini_model: e.target.value }))}
+                      style={{ maxWidth: '400px' }}
+                    >
+                      <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra-fast, high accuracy, Free Tier)</option>
+                      <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep reasoning & nuanced research)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* OpenAI Configuration */}
+              {aiConfig.provider === 'openai' && (
+                <div style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div className="bnx-form-group">
+                    <label className="bnx-form-label">OpenAI API Key</label>
+                    <input
+                      type="password"
+                      className="bnx-input"
+                      placeholder={aiConfig.has_openai_key ? '••••••••••••••••••••••••' : 'sk-... (Paste your key here)'}
+                      value={aiConfig.openai_api_key}
+                      onChange={(e) => setAiConfig((prev) => ({ ...prev, openai_api_key: e.target.value }))}
+                      style={{ maxWidth: '520px', fontFamily: 'monospace' }}
+                    />
+                    <div className="bnx-form-help">
+                      Your secret key from platform.openai.com. Stored encrypted with Libsodium/OpenSSL authenticated cipher.
+                    </div>
+                  </div>
+
+                  <div className="bnx-form-group">
+                    <label className="bnx-form-label">OpenAI Model</label>
+                    <select
+                      className="bnx-select"
+                      value={aiConfig.openai_model || 'gpt-4o-mini'}
+                      onChange={(e) => setAiConfig((prev) => ({ ...prev, openai_model: e.target.value }))}
+                      style={{ maxWidth: '400px' }}
+                    >
+                      <option value="gpt-4o-mini">GPT-4o Mini (Cost-efficient, high speed)</option>
+                      <option value="gpt-4o">GPT-4o (Flagship omni model)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{ marginTop: '24px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={handleTestAI}
+                  isLoading={isTestingAI}
+                  disabled={isTestingAI}
+                >
+                  ⚡ Test AI Connection
+                </Button>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  Sends a live ping to verify your API credentials.
+                </span>
+              </div>
+            </Card>
+
+            <Card title="AI Guardrails & Factuality" subtitle="Safety standards enforced by BlogNexa AI">
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#475569' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ color: '#15803d', fontWeight: 600 }}>✓ Strict Fact Grounding:</span>
+                  <span>Articles are generated using extracted website content to eliminate hallucinations.</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: '#15803d', fontWeight: 600 }}>✓ Encrypted Key Storage:</span>
+                  <span>API keys never leave your WordPress server and are never sent to any third party.</span>
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
 
         {activeTab === 'content' && (

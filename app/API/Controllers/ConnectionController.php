@@ -157,3 +157,4 @@ final class ConnectionController extends BaseController
         return ApiResponse::success(ConnectionStateMachine::getDiagnostics());
     }
 }
+

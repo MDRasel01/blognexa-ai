@@ -19,3 +19,4 @@ def test_operation_class_rate_limiting(client):
     allowed, retry_after = rate_limiter.check_rate_limit(client_key, "ai")
     assert allowed is False
     assert retry_after > 0
+

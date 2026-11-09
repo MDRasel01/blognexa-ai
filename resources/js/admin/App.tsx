@@ -125,6 +125,12 @@ const MainRouter: React.FC = () => {
     }
   };
 
+  const isConn = connectionStatus?.connected ?? false;
+  const badgeLabel = isConn
+    ? (connectionStatus?.mode === 'standalone' ? `AI Ready (${(connectionStatus?.provider || 'Gemini').toUpperCase()})` : 'Cloud Online')
+    : 'API Key Required';
+  const badgeVariant = isConn ? 'healthy' : 'warning';
+
   return (
     <AdminLayout
       activeModule={activeModule}
@@ -132,7 +138,9 @@ const MainRouter: React.FC = () => {
       siteName={bootConfig?.site?.name || 'BlogNexa AI'}
       version={bootConfig?.site?.version || '1.0.0'}
       userName={bootConfig?.user?.name || 'Administrator'}
-      connectionStatus={connectionStatus?.connected ? 'connected' : 'disconnected'}
+      connectionStatus={isConn ? 'connected' : 'disconnected'}
+      badgeLabel={badgeLabel}
+      badgeVariant={badgeVariant}
       userCapabilities={bootConfig?.user?.capabilities || {}}
     >
       {error && (

@@ -180,3 +180,4 @@ async def verify_hmac_request(request: Request) -> TenantContext:
         key_version=cred_record.key_version,
         scopes=cred_record.scopes
     )
+

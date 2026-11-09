@@ -122,3 +122,4 @@ BlogNexa AI operates as a hybrid SaaS platform:
 | **Tenant Isolation** | Server-Derived Context & RLS Filters | `backend/app/core/tenant_context.py` | `backend/tests/test_tenant_isolation.py` |
 | **SSRF Shield** | Egress Boundary IP Filtering | `backend/app/core/ssrf_guard.py` | `backend/tests/test_ssrf_guard.py` |
 | **Rate Limiting** | Operation-Class Sliding Window | `backend/app/core/rate_limiter.py` | `backend/tests/test_rate_limiter.py` |
+

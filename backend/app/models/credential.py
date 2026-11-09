@@ -58,3 +58,4 @@ class CredentialStore:
 
 
 credential_store = CredentialStore()
+

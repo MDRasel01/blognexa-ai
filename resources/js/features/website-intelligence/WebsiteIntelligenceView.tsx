@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PageHeader } from '../../layouts/PageHeader';
 import { Card } from '../../components/Card/Card';
 import { Button } from '../../components/Button/Button';
@@ -6,6 +6,7 @@ import { Badge } from '../../components/Badge/Badge';
 import { EmptyState } from '../../components/EmptyState/EmptyState';
 import { DataTable, Column } from '../../components/DataTable/DataTable';
 import { useApp } from '../../state/AppContext';
+import { apiClient } from '../../services/apiClient';
 
 interface PageInventoryItem {
   id: string;
@@ -13,31 +14,161 @@ interface PageInventoryItem {
   url: string;
   type: string;
   status: 'indexed' | 'pending' | 'failed' | 'excluded';
+  wordCount?: number;
   lastModified: string;
   lastScanned: string;
+}
+
+interface CrawlProgress {
+  status: 'idle' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  totalDiscovered: number;
+  totalProcessed: number;
+  totalFailed: number;
+  totalSkipped: number;
 }
 
 export const WebsiteIntelligenceView: React.FC = () => {
   const { connectionStatus, hasCapability, setActiveModule } = useApp();
   const [isScanning, setIsScanning] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string>('');
   const [includePosts, setIncludePosts] = useState(true);
   const [includePages, setIncludePages] = useState(true);
   const [respectRobots, setRespectRobots] = useState(true);
   const [scanType, setScanType] = useState<'incremental' | 'full'>('incremental');
   const [excludePatterns, setExcludePatterns] = useState('/tag/*, /author/*');
 
-  // Honest data: initially empty until scanned by backend
-  const [inventory] = useState<PageInventoryItem[]>([]);
+  const [progress, setProgress] = useState<CrawlProgress>({
+    status: 'idle',
+    totalDiscovered: 0,
+    totalProcessed: 0,
+    totalFailed: 0,
+    totalSkipped: 0,
+  });
+
+  const [inventory, setInventory] = useState<PageInventoryItem[]>([]);
+  const pollIntervalRef = useRef<number | null>(null);
 
   const isConnected = connectionStatus?.connected ?? false;
   const canScan = hasCapability('blognexa_scan_website');
 
-  const handleStartScan = () => {
-    if (!isConnected) {
-      alert('Cloud AI Backend is currently disconnected. Please configure backend credentials in Integrations.');
-      return;
+  // Load existing documents & status on initial mount
+  useEffect(() => {
+    loadInventory();
+    checkInitialStatus();
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const checkInitialStatus = async () => {
+    try {
+      const res = await apiClient.get<any>('/crawler/status');
+      if (res && res.status) {
+        setProgress({
+          status: res.status,
+          totalDiscovered: res.total_discovered || 0,
+          totalProcessed: res.total_processed || 0,
+          totalFailed: res.total_failed || 0,
+          totalSkipped: res.total_skipped || 0,
+        });
+
+        if (res.status === 'running' || res.status === 'queued') {
+          setIsScanning(true);
+          startPolling();
+        }
+      }
+    } catch {
+      // Ignore initial error when backend is offline
     }
+  };
+
+  const loadInventory = async () => {
+    try {
+      const res = await apiClient.get<{ documents: any[] }>('/crawler/documents');
+      if (res && Array.isArray(res.documents)) {
+        const items: PageInventoryItem[] = res.documents.map((d: any) => ({
+          id: d.id,
+          title: d.title || 'Untitled Document',
+          url: d.url || d.canonical_url,
+          type: d.document_type || 'article',
+          status: 'indexed',
+          wordCount: d.word_count || 0,
+          lastModified: d.modified_at ? new Date(d.modified_at).toLocaleDateString() : 'N/A',
+          lastScanned: d.last_extracted_at ? new Date(d.last_extracted_at * 1000).toLocaleDateString() : 'Just now',
+        }));
+        setInventory(items);
+      }
+    } catch {
+      // Offline fallback
+    }
+  };
+
+  const startPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
+    pollIntervalRef.current = window.setInterval(async () => {
+      try {
+        const res = await apiClient.get<any>('/crawler/status');
+        if (res) {
+          setProgress({
+            status: res.status,
+            totalDiscovered: res.total_discovered || 0,
+            totalProcessed: res.total_processed || 0,
+            totalFailed: res.total_failed || 0,
+            totalSkipped: res.total_skipped || 0,
+          });
+
+          if (res.status === 'completed' || res.status === 'failed' || res.status === 'cancelled') {
+            setIsScanning(false);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+            }
+            loadInventory();
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 2500);
+  };
+
+  const handleStartScan = async () => {
     setIsScanning(true);
+    try {
+      const res = await apiClient.post<any>('/crawler/scan', {
+        scan_type: scanType,
+        respect_robots: respectRobots,
+        exclude_patterns: excludePatterns,
+      });
+
+      if (res && res.job_id) {
+        setActiveJobId(res.job_id);
+      }
+      await loadInventory();
+      await checkInitialStatus();
+    } catch (err: any) {
+      alert(err.message || 'Failed to start scan.');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleCancelScan = async () => {
+    try {
+      await apiClient.post('/crawler/cancel', { job_id: activeJobId });
+      setIsScanning(false);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+      setProgress((prev) => ({ ...prev, status: 'cancelled' }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to cancel crawl job.');
+    }
   };
 
   const columns: Column<PageInventoryItem>[] = [
@@ -56,6 +187,12 @@ export const WebsiteIntelligenceView: React.FC = () => {
       header: 'Type',
       width: '100px',
       render: (row) => <Badge label={row.type} variant="empty" showDot={false} />,
+    },
+    {
+      key: 'wordCount',
+      header: 'Word Count',
+      width: '110px',
+      render: (row) => <span>{row.wordCount ? `${row.wordCount.toLocaleString()} words` : '—'}</span>,
     },
     {
       key: 'status',
@@ -90,20 +227,31 @@ export const WebsiteIntelligenceView: React.FC = () => {
         description="Autonomous content discovery, structural sitemap crawl, and topic understanding engine."
         badge={
           <Badge
-            label={isConnected ? 'Ready to Scan' : 'Backend Disconnected'}
-            variant={isConnected ? 'healthy' : 'disconnected'}
+            label={isScanning ? 'Scan in Progress' : 'Native Crawler Ready'}
+            variant={isScanning ? 'warning' : 'healthy'}
           />
         }
         actions={
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handleStartScan}
-            disabled={!canScan}
-            isLoading={isScanning}
-          >
-            {isScanning ? 'Scan in Progress...' : 'Start Website Crawl'}
-          </Button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {isScanning && (
+              <Button
+                variant="danger"
+                size="md"
+                onClick={handleCancelScan}
+              >
+                Cancel Crawl
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleStartScan}
+              disabled={!canScan || isScanning}
+              isLoading={isScanning}
+            >
+              {isScanning ? 'Scanning Website...' : 'Start Website Crawl'}
+            </Button>
+          </div>
         }
       />
 
@@ -201,73 +349,77 @@ export const WebsiteIntelligenceView: React.FC = () => {
                   </label>
                 </div>
 
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px', color: '#475569' }}>
-                  Excluded URL Patterns
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+                  Exclude Patterns (Comma-separated)
                 </label>
                 <input
                   type="text"
                   value={excludePatterns}
                   onChange={(e) => setExcludePatterns(e.target.value)}
+                  placeholder="/tag/*, /author/*"
                   style={{
                     width: '100%',
-                    padding: '6px 10px',
-                    fontSize: '12px',
-                    border: '1px solid #cbd5e1',
+                    padding: '8px 12px',
                     borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
                   }}
-                  placeholder="e.g. /cart/*, /checkout/*"
                 />
               </div>
             </div>
           </Card>
 
-          <Card
-            title="Crawl Engine Status"
-            subtitle="Controlled asynchronous background job telemetry"
-          >
-            <div style={{ fontSize: '13px', lineHeight: 1.8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '6px 0' }}>
-                <span style={{ color: '#64748b' }}>Active Job ID:</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{isScanning ? 'job_crawl_01' : 'None'}</span>
+          <Card title="Live Crawl Metrics" subtitle="Status and throughput">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b' }}>Crawl State:</span>
+                <span style={{ fontWeight: 600, textTransform: 'uppercase', color: progress.status === 'running' ? '#0284c7' : '#1e293b' }}>
+                  {progress.status}
+                </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '6px 0' }}>
-                <span style={{ color: '#64748b' }}>Status:</span>
-                <Badge
-                  label={isScanning ? 'CRAWLING' : 'IDLE'}
-                  variant={isScanning ? 'primary' : 'empty'}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '6px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
                 <span style={{ color: '#64748b' }}>Discovered URLs:</span>
-                <span style={{ fontWeight: 600 }}>{isScanning ? 'Scanning...' : '0'}</span>
+                <span style={{ fontWeight: 600 }}>{progress.totalDiscovered.toLocaleString()}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
-                <span style={{ color: '#64748b' }}>Failed URLs:</span>
-                <span>0</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b' }}>Extracted Documents:</span>
+                <span style={{ fontWeight: 600, color: '#16a34a' }}>{progress.totalProcessed.toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b' }}>Failed / Inaccessible:</span>
+                <span style={{ fontWeight: 600, color: progress.totalFailed > 0 ? '#dc2626' : '#64748b' }}>
+                  {progress.totalFailed.toLocaleString()}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                <span style={{ color: '#64748b' }}>Robots Excluded:</span>
+                <span style={{ fontWeight: 600 }}>{progress.totalSkipped.toLocaleString()}</span>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Page Inventory Section */}
+        {/* Content Inventory Table */}
         <Card
-          title="Discovered Page Inventory"
-          subtitle="Inventory of indexed pages and content assets eligible for knowledge building"
+          title="Discovered Content Inventory"
+          subtitle="Indexed pages, articles, and semantic document structures extracted from your website"
         >
           {inventory.length === 0 ? (
             <EmptyState
-              title="No Pages Scanned Yet"
-              description="Your website content inventory is currently empty. Connect your Cloud AI backend and trigger your first crawl to discover published articles and structural pages."
-              badgeLabel="UNINDEXED"
-              actionLabel={isConnected ? 'Initiate First Scan' : 'Configure Backend Connection'}
-              onAction={isConnected ? handleStartScan : () => setActiveModule('integrations')}
+              title={isScanning ? 'Extracting Content...' : 'No Website Content Ingested Yet'}
+              description={
+                isScanning
+                  ? 'The crawler is currently fetching sitemaps and articles. Extracted documents will appear here.'
+                  : 'Start your first website crawl to discover sitemaps, index published articles, and build your Topic Graph for Step 06 Knowledge Base.'
+              }
+              actionLabel={!isScanning && canScan && isConnected ? 'Start Initial Crawl' : undefined}
+              onAction={!isScanning && canScan && isConnected ? handleStartScan : undefined}
             />
           ) : (
-            <DataTable columns={columns} data={inventory} />
+            <DataTable data={inventory} columns={columns} />
           )}
         </Card>
       </div>
     </div>
   );
 };
-

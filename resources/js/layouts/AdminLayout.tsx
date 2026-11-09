@@ -1,6 +1,7 @@
 import React from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { BadgeVariant } from '../components/Badge/Badge';
 
 export interface AdminLayoutProps {
   activeModule: string;
@@ -8,7 +9,9 @@ export interface AdminLayoutProps {
   siteName: string;
   version: string;
   userName?: string;
-  connectionStatus?: 'connected' | 'disconnected' | 'connecting';
+  connectionStatus?: string;
+  badgeLabel?: string;
+  badgeVariant?: BadgeVariant;
   userCapabilities?: Record<string, boolean>;
   children: React.ReactNode;
 }
@@ -20,6 +23,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   version,
   userName = 'Administrator',
   connectionStatus = 'disconnected',
+  badgeLabel,
+  badgeVariant,
   userCapabilities = {},
   children,
 }) => {
@@ -39,6 +44,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         version={version}
         userName={userName}
         connectionStatus={connectionStatus}
+        badgeLabel={badgeLabel}
+        badgeVariant={badgeVariant}
       />
 
       <div

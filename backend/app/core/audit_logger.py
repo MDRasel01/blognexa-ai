@@ -84,3 +84,4 @@ class AuditStore:
 
 
 audit_store = AuditStore()
+

@@ -104,3 +104,4 @@ def exchange_enrollment_code(req: EnrollmentExchangeRequest):
         "site_id": site_id,
         "status": "connected"
     }
+

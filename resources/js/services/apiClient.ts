@@ -2,7 +2,7 @@
  * BlogNexa AI - Centralized Frontend REST API Client
  */
 
-import { BootConfig, ApiResponse, PluginStatus, ConnectionStatus, PluginSettings } from '../types';
+import { BootConfig, ApiResponse, PluginStatus, ConnectionStatus, PluginSettings, AIConfig } from '../types';
 
 class ApiClient {
   private getBootConfig(): BootConfig {
@@ -61,6 +61,17 @@ class ApiClient {
     return data as T;
   }
 
+  public async get<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET' });
+  }
+
+  public async post<T>(endpoint: string, body?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
   public async getStatus(): Promise<ApiResponse<PluginStatus>> {
     return this.request<ApiResponse<PluginStatus>>('status');
   }
@@ -77,6 +88,24 @@ class ApiClient {
     return this.request<ApiResponse<Partial<PluginSettings>>>('settings', {
       method: 'POST',
       body: JSON.stringify(settings),
+    });
+  }
+
+  public async getAIConfig(): Promise<ApiResponse<AIConfig>> {
+    return this.request<ApiResponse<AIConfig>>('ai/config');
+  }
+
+  public async saveAIConfig(config: Partial<AIConfig>): Promise<ApiResponse<{ message: string; config: AIConfig }>> {
+    return this.request<ApiResponse<{ message: string; config: AIConfig }>>('ai/config', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  }
+
+  public async testAIConnection(params?: any): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>('ai/test', {
+      method: 'POST',
+      body: JSON.stringify(params || {}),
     });
   }
 }

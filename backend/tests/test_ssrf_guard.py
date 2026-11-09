@@ -26,3 +26,4 @@ def test_ssrf_guard_allows_safe_external_url():
     is_safe, error = validate_target_url("https://example.com")
     assert is_safe is True
     assert error is None
+

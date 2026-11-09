@@ -79,3 +79,4 @@ def test_knowledge_rag_query_strictly_isolated(client):
     for item in data["results"]:
         assert item["tenant_id"] == "c1234567-89ab-cdef-0123-456789abcdef"
         assert "Financial Projections" not in item["title"]
+

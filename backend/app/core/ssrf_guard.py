@@ -99,3 +99,4 @@ def validate_target_url(url: str) -> Tuple[bool, Optional[str]]:
             return False, f"Host {hostname} resolves to restricted IP: {ip}"
 
     return True, None
+

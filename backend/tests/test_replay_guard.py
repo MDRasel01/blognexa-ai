@@ -16,3 +16,4 @@ def test_first_request_accepted_replay_rejected(client):
     res2 = client.get("/v1/site/status", headers=headers)
     assert res2.status_code == 401
     assert "REPLAY_ATTACK_DETECTED" in res2.json()["detail"]
+

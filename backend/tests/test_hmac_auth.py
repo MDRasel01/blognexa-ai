@@ -64,3 +64,4 @@ def test_revoked_credential_returns_401(client):
     cred = credential_store.get("cred-test-tenant-001")
     if cred:
         cred.status = "ACTIVE"
+

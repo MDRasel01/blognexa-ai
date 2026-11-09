@@ -90,3 +90,4 @@ final class RequestSignerTest
         return $results;
     }
 }
+

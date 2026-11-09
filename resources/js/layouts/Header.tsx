@@ -1,11 +1,13 @@
 import React from 'react';
-import { Badge } from '../components/Badge/Badge';
+import { Badge, BadgeVariant } from '../components/Badge/Badge';
 
 export interface HeaderProps {
   siteName: string;
   version: string;
   userName?: string;
-  connectionStatus?: 'connected' | 'disconnected' | 'connecting';
+  connectionStatus?: string;
+  badgeLabel?: string;
+  badgeVariant?: BadgeVariant;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -13,7 +15,13 @@ export const Header: React.FC<HeaderProps> = ({
   version,
   userName = 'Administrator',
   connectionStatus = 'disconnected',
+  badgeLabel,
+  badgeVariant,
 }) => {
+  const isConn = connectionStatus === 'connected' || connectionStatus === 'standalone_active';
+  const label = badgeLabel || (isConn ? 'AI Active (Standalone)' : 'API Key Required');
+  const variant = badgeVariant || (isConn ? 'healthy' : 'warning');
+
   return (
     <header
       className="bnx-header"
@@ -65,8 +73,8 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Badge
-          label={connectionStatus === 'connected' ? 'Cloud Connected' : 'Cloud Disconnected'}
-          variant={connectionStatus === 'connected' ? 'healthy' : 'disconnected'}
+          label={label}
+          variant={variant}
         />
         <Badge label="System Ready" variant="healthy" />
         <span style={{ fontSize: '12px', color: '#cbd5e1', borderLeft: '1px solid #334155', paddingLeft: '12px' }}>

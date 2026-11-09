@@ -12,6 +12,7 @@ namespace BlogNexaAI\API\Controllers;
 use BlogNexaAI\API\Responses\ApiResponse;
 use BlogNexaAI\Security\PermissionManager;
 use BlogNexaAI\Database\Installer;
+use BlogNexaAI\Infrastructure\AI\AIFactory;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -92,6 +93,23 @@ final class StatusController extends BaseController
      */
     public function getConnectionStatus(WP_REST_Request $request): WP_REST_Response
     {
+        $aiConfig = AIFactory::getConfig();
+        if (!empty($aiConfig['is_configured'])) {
+            $provider = $aiConfig['provider'] ?? 'gemini';
+            $model = $provider === 'openai' ? ($aiConfig['openai_model'] ?? 'gpt-4o-mini') : ($aiConfig['gemini_model'] ?? 'gemini-1.5-flash');
+
+            return ApiResponse::success([
+                'connected'    => true,
+                'status'       => 'standalone_active',
+                'mode'         => 'standalone',
+                'provider'     => $provider,
+                'model'        => $model,
+                'backend_url'  => 'Direct API (' . ucfirst($provider) . ')',
+                'last_ping_at' => $aiConfig['last_tested_at'],
+                'message'      => sprintf(__('Standalone Direct AI active (%s / %s).', 'blognexa-ai'), ucfirst($provider), $model),
+            ]);
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . BLOGNEXA_TABLE_CONNECTIONS;
 
@@ -100,20 +118,22 @@ final class StatusController extends BaseController
             ARRAY_A
         );
 
-        if (!$connection) {
+        if ($connection && $connection['status'] === 'connected') {
             return ApiResponse::success([
-                'connected' => false,
-                'status'    => 'disconnected',
-                'message'   => __('Site is not connected to BlogNexa Cloud.', 'blognexa-ai'),
+                'connected'    => true,
+                'status'       => 'connected',
+                'mode'         => 'cloud',
+                'site_uuid'    => $connection['site_uuid'],
+                'backend_url'  => $connection['backend_url'],
+                'last_ping_at' => $connection['last_ping_at'],
             ]);
         }
 
         return ApiResponse::success([
-            'connected'    => $connection['status'] === 'connected',
-            'status'       => $connection['status'],
-            'site_uuid'    => $connection['site_uuid'],
-            'backend_url'  => $connection['backend_url'],
-            'last_ping_at' => $connection['last_ping_at'],
+            'connected' => false,
+            'status'    => 'setup_required',
+            'mode'      => 'standalone',
+            'message'   => __('AI provider key not configured. Add your Google Gemini or OpenAI API key in Settings.', 'blognexa-ai'),
         ]);
     }
 }

@@ -1,0 +1,2 @@
+"""BlogNexa AI Crawler Module."""
+

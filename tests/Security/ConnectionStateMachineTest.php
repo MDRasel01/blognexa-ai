@@ -64,3 +64,4 @@ final class ConnectionStateMachineTest
         return $results;
     }
 }
+

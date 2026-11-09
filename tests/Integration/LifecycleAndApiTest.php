@@ -70,6 +70,13 @@ final class LifecycleAndApiTest
         $badResponse = $settingsController->updateSettings($badRequest);
         $results['SettingsController rejects non-whitelisted field'] = (is_wp_error($badResponse) && $badResponse->get_error_code() === 'blognexa_unknown_setting');
 
+        // 9. Crawler Controller Route Registration
+        $results['RESTRegistrar registers /crawler/scan'] = isset($test_registered_routes['blognexa/v1/crawler/scan']);
+        $results['RESTRegistrar registers /crawler/status'] = isset($test_registered_routes['blognexa/v1/crawler/status']);
+        $results['RESTRegistrar registers /crawler/urls'] = isset($test_registered_routes['blognexa/v1/crawler/urls']);
+        $results['RESTRegistrar registers /crawler/documents'] = isset($test_registered_routes['blognexa/v1/crawler/documents']);
+        $results['RESTRegistrar registers /crawler/cancel'] = isset($test_registered_routes['blognexa/v1/crawler/cancel']);
+
         return $results;
     }
 }

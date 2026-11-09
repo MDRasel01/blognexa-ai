@@ -63,3 +63,4 @@ def test_standard_specification_vector():
 
     expected_signature = "a7e8a492a81adf7dbbdff63b0788d1419da762a3d4ccc8fb0f62bcab3d88d44b"
     assert signature == expected_signature
+

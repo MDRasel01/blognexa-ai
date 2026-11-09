@@ -94,3 +94,4 @@ Before any audit record, error message, or debug log is written to persistent st
    * Rotate WordPress core `AUTH_KEY` and `SECURE_AUTH_KEY` in `wp-config.php`.
    * Clear local plugin encrypted options (`blognexa_credentials`).
    * Perform fresh enrollment handshake to establish a new `site_instance_id` and new API keys.
+

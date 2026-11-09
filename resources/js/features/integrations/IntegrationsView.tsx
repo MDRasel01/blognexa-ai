@@ -17,7 +17,7 @@ interface IntegrationCardItem {
 }
 
 export const IntegrationsView: React.FC = () => {
-  const { connectionStatus, hasCapability } = useApp();
+  const { connectionStatus, hasCapability, setActiveModule } = useApp();
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationCardItem | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [backendUrlInput, setBackendUrlInput] = useState('https://api.blognexa.ai');
@@ -27,13 +27,22 @@ export const IntegrationsView: React.FC = () => {
 
   const integrations: IntegrationCardItem[] = [
     {
-      id: 'cloud-backend',
-      name: 'BlogNexa Cloud AI Backend',
-      category: 'Core Engine',
-      description: 'Distributed crawler, RAG embeddings pipeline, and high-performance LLM orchestrator.',
+      id: 'google-gemini',
+      name: 'Google Gemini AI',
+      category: 'AI Engine (Direct API)',
+      description: 'Ultra-fast, high-context AI model with 1,000,000 token context window. Free tier available via Google AI Studio.',
       status: isCloudConnected ? 'connected' : 'disconnected',
-      capabilities: ['FastAPI Services', 'PostgreSQL Vector', 'Celery Queues', 'SSRF Guarded'],
-      icon: '⚡',
+      capabilities: ['Gemini 1.5 Flash', 'Gemini 1.5 Pro', 'No External Server', 'Direct WordPress Execution'],
+      icon: '✨',
+    },
+    {
+      id: 'openai',
+      name: 'OpenAI (GPT-4o)',
+      category: 'AI Engine (Direct API)',
+      description: 'Direct GPT-4o & GPT-4o-mini inference for structured article drafting and semantic analysis.',
+      status: 'disconnected',
+      capabilities: ['GPT-4o', 'GPT-4o-mini', 'No External Server', 'Direct API'],
+      icon: '🤖',
     },
     {
       id: 'wp-core',
@@ -136,7 +145,13 @@ export const IntegrationsView: React.FC = () => {
                       variant={isConn ? 'secondary' : 'primary'}
                       size="sm"
                       disabled={!canManage || isNotInst}
-                      onClick={() => setSelectedIntegration(item)}
+                      onClick={() => {
+                        if (item.id === 'google-gemini' || item.id === 'openai') {
+                          setActiveModule('settings');
+                        } else {
+                          setSelectedIntegration(item);
+                        }
+                      }}
                     >
                       {isConn ? 'Manage' : isDet ? 'Connect' : 'Setup'}
                     </Button>

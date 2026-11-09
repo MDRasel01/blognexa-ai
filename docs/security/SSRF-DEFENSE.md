@@ -91,3 +91,4 @@ DNS Rebinding occurs when an attacker's authoritative nameserver responds with a
 * **Response Size Cap:** Maximum **10 MB** (10,485,760 bytes). Streams exceeding this size trigger connection closure with `413 Payload Too Large`.
 * **Execution Timeout:** Connect timeout = 5 seconds; Read timeout = 15 seconds.
 * **Parser Safety:** Disable XML external entity resolution (`LIBXML_NONET` in PHP, `defusedxml` in Python) to eliminate XXE vulnerabilities.
+

@@ -172,3 +172,4 @@ if not hmac.compare_digest(expected_signature, received_signature):
 2. If `abs(current_utc_timestamp - request_timestamp) > 300`:
    * The backend rejects the request immediately with `HTTP 401 Unauthorized` and code `CLOCK_SKEW_EXCEEDED`.
    * Nonce checking is bypassed for expired requests to preserve Redis capacity.
+

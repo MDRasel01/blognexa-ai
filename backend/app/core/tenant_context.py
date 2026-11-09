@@ -13,3 +13,4 @@ class TenantContext(BaseModel):
 
     def has_scope(self, required_scope: str) -> bool:
         return required_scope in self.scopes or "admin:all" in self.scopes
+

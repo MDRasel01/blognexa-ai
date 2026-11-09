@@ -32,3 +32,4 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 def healthcheck():
     """Liveness probe."""
     return {"status": "ok", "service": "blognexa-cloud-backend"}
+

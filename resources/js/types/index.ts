@@ -43,11 +43,27 @@ export interface PluginStatus {
 
 export interface ConnectionStatus {
   connected: boolean;
-  status: 'connected' | 'disconnected' | 'connecting' | 'error';
+  status: 'connected' | 'disconnected' | 'connecting' | 'error' | 'standalone_active' | 'setup_required';
+  mode?: 'standalone' | 'cloud';
+  provider?: string;
+  model?: string;
   site_uuid?: string;
   backend_url?: string;
   last_ping_at?: string;
   message?: string;
+}
+
+export interface AIConfig {
+  provider: 'gemini' | 'openai';
+  gemini_model: string;
+  gemini_api_key: string;
+  has_gemini_key: boolean;
+  openai_model: string;
+  openai_api_key: string;
+  has_openai_key: boolean;
+  is_configured: boolean;
+  last_tested_at: string | null;
+  last_test_status: string | null;
 }
 
 export interface PluginSettings {
