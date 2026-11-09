@@ -1,0 +1,14 @@
+parameters:
+    level: 6
+    paths:
+        - blognexa-ai.php
+        - uninstall.php
+        - config
+        - app
+    excludePaths:
+        - vendor/*
+        - build/*
+        - tests/*
+    bootstrapFiles:
+        - tests/bootstrap.php
+

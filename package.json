@@ -1,0 +1,35 @@
+{
+  "name": "blognexa-ai-admin",
+  "version": "1.0.0",
+  "description": "BlogNexa AI WordPress Admin UI - React Application",
+  "main": "resources/js/admin/index.tsx",
+  "scripts": {
+    "build": "wp-scripts build resources/js/admin/index.tsx --output-path=build",
+    "start": "wp-scripts start resources/js/admin/index.tsx --output-path=build",
+    "lint:js": "wp-scripts lint-js",
+    "lint:css": "wp-scripts lint-style",
+    "test": "wp-scripts test-unit-js"
+  },
+  "keywords": [
+    "wordpress",
+    "react",
+    "blognexa-ai",
+    "ai-content"
+  ],
+  "license": "GPL-2.0-or-later",
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@wordpress/components": "^28.0.0",
+    "@wordpress/element": "^6.0.0",
+    "@wordpress/i18n": "^5.0.0",
+    "@wordpress/icons": "^10.0.0",
+    "@wordpress/scripts": "^27.0.0",
+    "lucide-react": "^0.344.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

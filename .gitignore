@@ -1,0 +1,29 @@
+# Composer
+/vendor/
+composer.phar
+composer.lock
+
+# Node / NPM
+/node_modules/
+/build/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing & Cache
+.phpunit.result.cache
+/tests/temp/
+.phpstan.cache/
+*.log
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.user
+*.bak
+*.swp
+
