@@ -27,6 +27,8 @@ abstract class BaseController extends WP_REST_Controller
     /**
      * Register the routes for the controller.
      */
-    abstract public function register_routes(): void;
+    public function register_routes(): void
+    {
+        // Concrete controllers override this method
+    }
 }
-
