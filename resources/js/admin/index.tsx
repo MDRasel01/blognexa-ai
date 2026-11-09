@@ -34,8 +34,10 @@ function mountBlogNexaApp(): void {
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', mountBlogNexaApp);
-} else {
+// If container is already present in DOM (standard WordPress footer execution), mount immediately
+if (document.getElementById(MOUNT_ID)) {
   mountBlogNexaApp();
+} else {
+  document.addEventListener('DOMContentLoaded', mountBlogNexaApp);
+  window.addEventListener('load', mountBlogNexaApp);
 }
